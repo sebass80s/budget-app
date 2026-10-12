@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { MonthlyTable } from "@/components/MonthlyTable";
 import {
   type BudgetDocument, type Cadence, type Recurring, type Transaction,
   addDays, createDemoBudget, createEmptyBudget, dailyNetOre, dailyResultOre,
@@ -8,7 +9,7 @@ import {
   validDocument, virtualBalanceOre,
 } from "@/lib/budget";
 
-type Tab = "overview" | "transactions" | "recurring" | "settings";
+type Tab = "overview" | "monthly" | "transactions" | "recurring" | "settings";
 type EntryType = "expense" | "income";
 const STORAGE_KEY = "budget-app:v1";
 const currency = new Intl.NumberFormat("sv-SE", { style: "currency", currency: "SEK", maximumFractionDigits: 0 });
@@ -23,6 +24,7 @@ const cadenceLabel: Record<Cadence, string> = {
 };
 const nav: { id: Tab; label: string; icon: string }[] = [
   { id: "overview", label: "Översikt", icon: "▦" },
+  { id: "monthly", label: "Månadsvy", icon: "▤" },
   { id: "transactions", label: "Händelser", icon: "⇄" },
   { id: "recurring", label: "Återkommande", icon: "↻" },
   { id: "settings", label: "Inställningar", icon: "⚙" },
@@ -252,6 +254,7 @@ export default function HomePage() {
           <div className="title-row">
             <div><div className="eyebrow">{formatDate(currentDay).toUpperCase()} · {workspace.name.toUpperCase()}</div><h1>{tab === "overview" ? "Din ekonomi, i klartext." : nav.find(n => n.id === tab)?.label}</h1>
               <p className="lead">{tab === "overview" ? "Ett dagligt resultat. Små beslut som blir stora över tid." :
+                tab === "monthly" ? "Varje dag i månaden, samlad på ett ställe." :
                 tab === "transactions" ? "Registrera det som händer mellan löningarna." :
                 tab === "recurring" ? "Grunden som driver ditt dagliga ekonomiska netto." :
                 "Din data, din kontroll."}</p></div>
@@ -296,6 +299,8 @@ export default function HomePage() {
             </div>
             <div className="bottom-hint"><span>ⓘ</span> Prognosen bygger på fasta poster. Framtida mat, resor och andra rörliga utgifter ingår inte förrän du registrerar dem.</div>
           </>}
+          {tab === "monthly" && <MonthlyTable document={document} workspaceId={workspaceId} today={currentDay}
+            onAddTransaction={(date) => { setTxDate(date); setTab("transactions"); setNotice(""); }} />}
           {tab === "transactions" && <div className="two-columns">
             <section className="panel form-panel"><div className="mini-caption">NY HÄNDELSE</div><h2>Vad har hänt?</h2>
               <form onSubmit={addTransaction} className="form">
