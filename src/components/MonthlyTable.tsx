@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { type BudgetDocument } from "@/lib/budget";
+import { type BudgetDocument, type Transaction } from "@/lib/budget";
+import { ExpenseEditor } from "@/components/ExpenseEditor";
+import { type ExpenseChange } from "@/lib/expense-edits";
 import { getMonthLedger, shiftMonth } from "@/lib/monthly";
 
 const sek = new Intl.NumberFormat("sv-SE", { style: "currency", currency: "SEK", maximumFractionDigits: 2 });
@@ -18,11 +20,14 @@ type Props = {
   workspaceId: string;
   today: string;
   onAddTransaction: (date: string) => void;
+  onEditTransaction: (transaction: Transaction, changes: ExpenseChange) => Promise<boolean>;
+  saving: boolean;
 };
 
-export function MonthlyTable({ document, workspaceId, today, onAddTransaction }: Props) {
+export function MonthlyTable({ document, workspaceId, today, onAddTransaction, onEditTransaction, saving }: Props) {
   const [month, setMonth] = useState(() => today.slice(0, 7));
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   useEffect(() => { setMonth(today.slice(0, 7)); }, [today]);
   const ledger = useMemo(() => getMonthLedger(document, workspaceId, month), [document, workspaceId, month]);
   const isForecast = ledger.end > today;
@@ -32,6 +37,7 @@ export function MonthlyTable({ document, workspaceId, today, onAddTransaction }:
   function navigate(offset: number) {
     setMonth(previous => shiftMonth(previous, offset));
     setExpanded(null);
+    setEditingId(null);
   }
   return (
     <section className="month-view" aria-label="Budget dag för dag">
@@ -45,7 +51,7 @@ export function MonthlyTable({ document, workspaceId, today, onAddTransaction }:
           <button type="button" className="month-control" onClick={() => navigate(-1)} aria-label="Föregående månad">‹</button>
           <strong aria-live="polite">{formatMonth(month)}</strong>
           <button type="button" className="month-control" onClick={() => navigate(1)} aria-label="Nästa månad">›</button>
-          {!isCurrentMonth && <button type="button" className="month-today" onClick={() => { setMonth(today.slice(0, 7)); setExpanded(null); }}>Denna månad</button>}
+          {!isCurrentMonth && <button type="button" className="month-today" onClick={() => { setMonth(today.slice(0, 7)); setExpanded(null); setEditingId(null); }}>Denna månad</button>}
         </div>
       </div>
       <div className="month-summary">
@@ -92,7 +98,7 @@ export function MonthlyTable({ document, workspaceId, today, onAddTransaction }:
                     <th scope="row">
                       <button type="button" className="month-day-button" aria-expanded={open}
                         aria-label={`${formatDay(row.date)}: ${open ? "dölj" : "visa"} detaljer`}
-                        onClick={() => setExpanded(open ? null : row.date)}>
+                        onClick={() => { setExpanded(open ? null : row.date); setEditingId(null); }}>
                         <span className="day-chevron" aria-hidden="true">{open ? "⌃" : "⌄"}</span>
                         <span className="month-day-label">
                           <span>{formatDay(row.date)}</span>
@@ -111,7 +117,19 @@ export function MonthlyTable({ document, workspaceId, today, onAddTransaction }:
                         <button type="button" className="month-add" onClick={() => onAddTransaction(row.date)}>+ Lägg till utgift den här dagen</button>
                       </div>
                       {row.transactions.map(t =>
-                        <div className="month-detail" key={t.id}><span>{t.label} <small>registrerad händelse</small></span><strong>{signed(t.amountOre)}</strong></div>)}
+                        <div className="month-expense-item" key={t.id}>
+                          <div className="month-detail">
+                            <span>{t.label} <small>registrerad händelse</small></span>
+                            <div className="month-detail-actions">
+                              <strong>{signed(t.amountOre)}</strong>
+                              {t.amountOre < 0 && <button type="button" className="quiet-button expense-edit-trigger"
+                                disabled={saving} aria-expanded={editingId === t.id}
+                                onClick={() => setEditingId(current => current === t.id ? null : t.id)}>Ändra</button>}
+                            </div>
+                          </div>
+                          {editingId === t.id && <ExpenseEditor transaction={t} saving={saving}
+                            onSave={onEditTransaction} onCancel={() => setEditingId(null)} />}
+                        </div>)}
                       {detailsCount === 0 && <p>Inga registrerade händelser denna dag.</p>}
                     </>}
                   </td></tr>
