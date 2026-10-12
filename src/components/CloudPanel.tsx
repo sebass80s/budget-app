@@ -40,10 +40,14 @@ export function CloudPanel({ cloud }: { cloud: Cloud }) {
           </button>}
         {cloud.status === "blocked" &&
           <button className="button button-outline" type="button" onClick={cloud.retry}>Försök synka igen</button>}
+        {cloud.hasLocalBackup && cloud.status !== "saving" && <>
+          <button className="button button-outline" type="button" onClick={cloud.restoreLocalCopy}>Återställ tidigare lokal budget</button>
+          <p className="form-hint">En kopia av din tidigare lokala budget finns kvar på den här enheten. Återställning påverkar inte molnbudgeten.</p>
+        </>}
         <button className="button button-outline" type="button" onClick={cloud.signOut}>Logga ut</button>
       </>}
       {cloud.message && <p className="form-hint" role="status">{cloud.message}</p>}
-      <p className="form-hint">Molnlagring kräver internet. Appen behåller en lokal kopia, men ändringar gjorda offline synkroniseras inte säkert automatiskt. Exportera alltid JSON-backup vid byte mellan enheter.</p>
+      <p className="form-hint">Molnlagring kräver internet. Appen behåller en lokal kopia, men offlineändringar sammanfogas inte automatiskt. Vid molnhämtning sparas en tidigare lokal budget på enheten utan att öppna en JSON-fil. Vill du ha en separat fil väljer du Exportera JSON-backup under Inställningar.</p>
     </section>
   );
 }

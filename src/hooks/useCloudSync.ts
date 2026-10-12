@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { type BudgetDocument, validDocument } from "@/lib/budget";
+import { localCloudBackupKey, preserveLocalCloudBackup, readLocalCloudBackup } from "@/lib/cloud-local-backup";
 import {
   type CloudServices, type CloudSnapshot, loadCloudServices, watchAuth,
   logIn, register, logOut, readCloud, writeCloud,
@@ -10,15 +11,6 @@ type Status = "loading" | "disabled" | "signedOut" | "ready" | "active" | "savin
 const baseKey = (uid: string) => "budget-app:cloud-last-synced:" + uid;
 const stringify = (budget: BudgetDocument) => JSON.stringify(budget);
 
-function backupLocally(budget: BudgetDocument, uid: string) {
-  const saved = stringify(budget);
-  window.localStorage.setItem("budget-app:pre-cloud:" + uid, saved);
-  const url = URL.createObjectURL(new Blob([JSON.stringify(budget, null, 2)], { type:"application/json" }));
-  const link = window.document.createElement("a");
-  link.href = url; link.download = "budget-app-before-cloud.json"; link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1500);
-}
-
 export function useCloudSync(
   budget: BudgetDocument | null,
   replaceBudget: (budget: BudgetDocument) => void,
@@ -27,6 +19,7 @@ export function useCloudSync(
   const [email, setEmail] = useState("");
   const [exists, setExists] = useState(false);
   const [message, setMessage] = useState("");
+  const [hasLocalBackup, setHasLocalBackup] = useState(false);
   const services = useRef<CloudServices | null>(null);
   const uid = useRef<string | null>(null);
   const budgetRef = useRef(budget);
@@ -49,6 +42,7 @@ export function useCloudSync(
         enabled.current = false; blocked.current = false;
         uid.current = user?.uid ?? null;
         setEmail(user?.email ?? "");
+        setHasLocalBackup(user ? window.localStorage.getItem(localCloudBackupKey(user.uid)) !== null : false);
         if (!user) { setStatus("signedOut"); setExists(false); return; }
         setStatus("loading");
         try {
@@ -137,17 +131,22 @@ export function useCloudSync(
       const cloud: CloudSnapshot | null = await readCloud(service, account);
       if (uid.current !== account) return;
       if (cloud) {
-        if (!window.confirm("Hämta budgeten från molnet? Den ersätter den budget som visas här. En JSON-backup av den lokala kopian laddas ned först.")) {
+        if (!window.confirm(budget.demo
+          ? "Hämta din molnbudget till den här enheten? Den ersätter demobudgeten."
+          : "Hämta molnbudgeten? Budgeten som visas här ersätts. En säkerhetskopia av eventuella lokala uppgifter sparas på enheten, utan någon filnedladdning. Vill du ha en separat JSON-fil, avbryt och välj Exportera JSON-backup först.")) {
           setStatus("ready"); return;
         }
-        backupLocally(budget, account);
+        const backedUp = preserveLocalCloudBackup(window.localStorage, account, budget, cloud.budget);
+        if (backedUp) setHasLocalBackup(true);
         revision.current = cloud.revision;
         lastSaved.current = stringify(cloud.budget);
         window.localStorage.setItem(baseKey(account),lastSaved.current);
         enabled.current = true;
         replaceBudget(cloud.budget);
         setExists(true); setStatus("active");
-        setMessage("Molnbudgeten har hämtats och synkronisering är aktiv.");
+        setMessage(backedUp
+          ? "Molnbudgeten har hämtats. Den tidigare lokala budgeten finns sparad på enheten och kan återställas under Molnlagring."
+          : "Molnbudgeten har hämtats och synkronisering är aktiv.");
       } else {
         if (!validDocument(budget) || budget.demo) {
           setStatus("ready");
@@ -198,5 +197,22 @@ export function useCloudSync(
       setMessage(error instanceof Error ? error.message : "Kunde inte ansluta till molnet.");
     }
   }
-  return { status, email, exists, message, active: status === "active" || status === "saving", signIn, signOut, connect, retry };
+  function restoreLocalCopy() {
+    if (!uid.current || status === "saving") return;
+    try {
+      const copy = readLocalCloudBackup(window.localStorage, uid.current);
+      if (!copy) { setMessage("Ingen tidigare lokal budget finns sparad."); return; }
+      if (!window.confirm("Återställa den tidigare lokala budgeten på denna enhet? Molnsynkroniseringen pausas och budgeten i Firebase ändras inte.")) return;
+      enabled.current = false;
+      blocked.current = false;
+      lastSaved.current = "";
+      window.localStorage.removeItem(baseKey(uid.current));
+      setStatus("ready");
+      replaceBudget(copy);
+      setMessage("Tidigare lokal budget återställd på denna enhet. Molnbudgeten är oförändrad. Synkroniseringen är pausad.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Kunde inte läsa den lokala säkerhetskopian.");
+    }
+  }
+  return { status, email, exists, message, hasLocalBackup, restoreLocalCopy, active: status === "active" || status === "saving", signIn, signOut, connect, retry };
 }
