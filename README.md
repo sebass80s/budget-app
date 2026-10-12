@@ -37,7 +37,7 @@ PWA-bygget genererar PNG-appikoner utan extra dependencies och ett versionshante
 
 Molnlagringen är **avstängd tills Firebase är konfigurerat**. Den fungerar utan någon ChatGPT-plugin. Appens gamla lokala dataformat ändras inte.
 
-Se [Firebase installationsguide](docs/FIREBASE_SETUP.md) för att aktivera e-postinloggning, Firestore-regler och en enda GitHub Actions-variabel. När det är klart kan du ansluta under **Inställningar → Molnlagring**. Första överföringen är alltid ett aktivt val; ingen befintlig budget skrivs över vid inloggning. Efter anslutning sparas nya ändringar online med revisionskontroll. Offline-konflikter kräver manuell återställning och säkerhetskopia.
+Se [Firebase installationsguide](docs/FIREBASE_SETUP.md) för att aktivera e-postinloggning, Firestore-regler och en enda GitHub Actions-variabel. När det är klart kan du ansluta under **Inställningar → Molnlagring**. Första överföringen är alltid ett aktivt val; ingen befintlig budget skrivs över vid inloggning. Vid molnhämtning behålls en lokal säkerhetskopia som kan återställas i appen utan automatisk JSON-nedladdning. Efter anslutning sparas nya ändringar online med revisionskontroll. Offline-konflikter kräver manuell återställning och säkerhetskopia.
 
 ## Vad finns?
 

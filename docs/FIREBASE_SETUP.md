@@ -42,7 +42,7 @@ Budget App körs fortfarande på GitHub Pages. Molnkopplingen är frivillig och 
 - Öppna appen → **Inställningar → Molnlagring**.
 - Skapa ett e-postkonto eller logga in.
 - Om molnet är tomt: avsluta först demot, välj sedan **Lägg min budget i molnet**.
-- Om molnet redan innehåller en budget: välj **Hämta molnbudget**. En JSON-säkerhetskopia av den lokala budgeten laddas ned före ersättningen.
+- Om molnet redan innehåller en budget: välj **Hämta molnbudget**. Om den lokala budgeten innehåller egna uppgifter sparas den gamla versionen i webbläsarens lokala lagring. **Ingen JSON-fil laddas ned automatiskt**, eftersom det kan störa en installerad iPhone-PWA. Vid behov kan den tidigare budgeten hämtas via **Återställ tidigare lokal budget** i Molnlagring, utan att ändra Firebase. Vill du ha en separat fil använder du **Exportera JSON-backup** i Inställningar innan du hämtar molnbudgeten.
 - När budgeten är ansluten sparas nya ändringar automatiskt **vid internetuppkoppling**. Vid konflikt stoppas vidare uppladdning, så en äldre enhet inte tyst ska skriva över en nyare kopia.
 - På ytterligare enheter: logga in med samma konto och välj att hämta molnbudgeten. Installerade PWA-appar och Safari kan ha separata lokala lagringsutrymmen.
 
