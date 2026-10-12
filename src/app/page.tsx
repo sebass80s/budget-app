@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CloudPanel } from "@/components/CloudPanel";
+import { ExpenseEditor } from "@/components/ExpenseEditor";
+import { type ExpenseChange, updateExpense } from "@/lib/expense-edits";
 import { MonthlyTable } from "@/components/MonthlyTable";
 import { useCloudSync } from "@/hooks/useCloudSync";
 import {
@@ -39,6 +41,7 @@ export default function HomePage() {
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [notice, setNotice] = useState("");
+  const [editingTodayId, setEditingTodayId] = useState<string | null>(null);
   const [incomeLabel, setIncomeLabel] = useState("Lön");
   const [incomeAmount, setIncomeAmount] = useState("");
   const [fixedLabel, setFixedLabel] = useState("");
@@ -166,6 +169,13 @@ export default function HomePage() {
         ? d.recurring.filter(r => r.id !== item.id)
         : d.recurring.map(r => r.id === item.id ? { ...r, endsOn: addDays(today, -1) } : r),
     })).then(saved => { if (saved) setNotice("Posten har avslutats i Firebase."); });
+  }
+
+  async function saveExpenseEdit(original: Transaction, changes: ExpenseChange): Promise<boolean> {
+    setNotice("");
+    const saved = await cloud.saveBudget(doc => updateExpense(doc, original, changes));
+    if (saved) setNotice("Utgiften har uppdaterats i Firebase.");
+    return saved;
   }
 
   function deleteExpense(item: Transaction) {
@@ -347,19 +357,33 @@ export default function HomePage() {
           <section className="panel list-panel">
             <div className="panel-heading"><h2>Registrerade utgifter</h2><span className="subtle-tag">{todaysExpenses.length} st</span></div>
             {todaysExpenses.length === 0 ? <div className="empty-state">Du har inte registrerat några utgifter idag.</div> :
-              todaysExpenses.map(item => <div className="list-row" key={item.id}>
-                <div><strong>{item.label}</strong><small>{formatDay(item.bookedOn)}</small></div>
-                <div className="list-row-right">
-                  <strong className="negative">{money(Math.abs(item.amountOre))}</strong>
-                  <button disabled={cloud.status === "saving"} className="icon-button" type="button"
-                    aria-label={"Ta bort " + item.label} title="Ta bort utgift" onClick={() => deleteExpense(item)}>×</button>
+              todaysExpenses.map(item => <div className="expense-item" key={item.id}>
+                <div className="list-row">
+                  <div><strong>{item.label}</strong><small>{formatDay(item.bookedOn)}</small></div>
+                  <div className="list-row-right">
+                    <strong className="negative">{money(Math.abs(item.amountOre))}</strong>
+                    <button type="button" className="quiet-button expense-edit-trigger"
+                      aria-expanded={editingTodayId === item.id}
+                      aria-controls={editingTodayId === item.id ? "edit-expense-" + item.id : undefined}
+                      disabled={cloud.status === "saving"}
+                      onClick={() => setEditingTodayId(current => current === item.id ? null : item.id)}>
+                      Ändra
+                    </button>
+                    <button disabled={cloud.status === "saving"} className="icon-button" type="button"
+                      aria-label={"Ta bort " + item.label} title="Ta bort utgift" onClick={() => deleteExpense(item)}>×</button>
+                  </div>
                 </div>
+                {editingTodayId === item.id && <div id={"edit-expense-" + item.id}>
+                  <ExpenseEditor transaction={item} saving={cloud.status === "saving"}
+                    onSave={saveExpenseEdit} onCancel={() => setEditingTodayId(null)} />
+                </div>}
               </div>)}
           </section>
         </div>}
 
         {tab === "monthly" && <MonthlyTable document={document} workspaceId={workspaceId} today={today}
-          onAddTransaction={date => newExpense(date)} />}
+          onAddTransaction={date => newExpense(date)} onEditTransaction={saveExpenseEdit}
+          saving={cloud.status === "saving"} />}
 
         {tab === "settings" && <div className="settings-stack">
           <div className="settings-primary">

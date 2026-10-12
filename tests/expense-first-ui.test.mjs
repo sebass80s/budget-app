@@ -74,3 +74,19 @@ test("UX: reduce status clutter, enlarge mobile controls, and explain month scro
   assert.match(stylesheet, /\.mobile-nav-item\{min-height:44px\}/);
   assert.match(monthMarkup, /Svep tabellen i sidled/);
 });
+
+
+test("existing expense correction is reachable from daily expenses and opened monthly days", () => {
+  const month = readFileSync(new URL("../src/components/MonthlyTable.tsx", import.meta.url), "utf8");
+  const editor = readFileSync(new URL("../src/components/ExpenseEditor.tsx", import.meta.url), "utf8");
+  assert.match(page, /const \[editingTodayId, setEditingTodayId\] = useState/);
+  assert.match(page, /onEditTransaction=\{saveExpenseEdit\}/);
+  assert.match(page, /cloud\.saveBudget\(doc => updateExpense\(doc, original, changes\)\)/);
+  assert.match(page, /<ExpenseEditor transaction=\{item\}/);
+  assert.match(month, /t\.amountOre < 0 && <button/);
+  assert.match(month, /<ExpenseEditor transaction=\{t\}/);
+  assert.match(editor, /const original = useRef\(transaction\)/);
+  assert.match(editor, /onSave\(original\.current, \{ amount, label, bookedOn \}\)/);
+  assert.match(editor, /Spara ändringar/);
+  assert.match(editor, /Avbryt/);
+});
