@@ -67,7 +67,10 @@ export function useCloudSync() {
           // A server read is mandatory. Never display budget data from localStorage
           // or Firebase's offline cache as if it were saved in the cloud.
           const found = await readCloud(service, user.uid);
-          const snapshot = found ?? await createCloudBudget(service, user.uid, createEmptyBudget(todayLocal()));
+          const snapshot = found ?? await createCloudBudget(service, user.uid, {
+            ...createEmptyBudget(todayLocal()),
+            onboarding: { version: 1, completed: false },
+          });
           if (stopped || account.current !== user.uid) return;
           applySnapshot(snapshot);
           changeStatus("active");

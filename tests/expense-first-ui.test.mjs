@@ -90,3 +90,17 @@ test("existing expense correction is reachable from daily expenses and opened mo
   assert.match(editor, /Spara ändringar/);
   assert.match(editor, /Avbryt/);
 });
+
+
+test("new account onboarding opens only from Firebase marker and existing accounts can revisit", () => {
+  const setup=readFileSync(new URL("../src/components/Onboarding.tsx", import.meta.url), "utf8");
+  const hook=readFileSync(new URL("../src/hooks/useCloudSync.ts", import.meta.url), "utf8");
+  assert.match(hook,/onboarding: \{ version: 1, completed: false \}/);
+  assert.match(page,/if \(needsOnboarding\(document\) \|\| showSetupGuide\)/);
+  assert.match(page,/cloud\.saveBudget\(finishOnboarding\)/);
+  assert.match(page,/Visa introduktionen/);
+  assert.match(setup,/Hoppa över guiden/);
+  assert.match(setup,/Spara och fortsätt/);
+  assert.match(setup,/Spara kostnad/);
+  assert.match(setup,/Lägg till min första utgift/);
+});

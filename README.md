@@ -41,6 +41,14 @@ En registrerad utgift syns först när Firestore-transaktionen har slutförts. U
 
 Se [Firebase installationsguide](docs/FIREBASE_SETUP.md) för inställningar.
 
+## Onboarding för nya konton
+
+En helt ny Firebase-budget märks med `onboarding: { version: 1, completed: false }`. Äldre konton saknar denna markör och får **inte** onboarding automatiskt, även om de är tomma.
+
+Efter inloggning visas fyra korta steg: **Välkommen → Månadsinkomst → Fasta kostnader → Lägg till första utgiften**. Inkomst och fasta kostnader sparas direkt i Firestore som vanliga återkommande månadsbelopp. Flera kostnader kan läggas till. Båda stegen kan hoppas över och uppgifterna kan ändras senare under Inställningar.
+
+När guiden slutförs eller hoppas över markeras den färdig i Firebase. Den visas inte igen efter omladdning eller på andra enheter. Guiden kan öppnas manuellt under **Inställningar → Fler inställningar → Visa introduktionen**, utan att befintlig budget raderas eller skapar en ny. En avbruten onboarding kan återupptas efter omladdning med redan sparade poster intakta.
+
 ## Enkelt användarflöde
 
 **Startsidan:** Dagens utgifter öppnas automatiskt efter inloggning. En tydlig **+ Ny utgift**-knapp öppnar ett enkelt formulär med belopp, valfri beskrivning och datum förvalt till idag. Utgiften syns först när Firebase bekräftat sparningen.
