@@ -47,8 +47,30 @@ test("new expense view displays live daily result above the expense form", () =>
   const result = page.indexOf('className="day-result-card"', start);
   const expense = page.indexOf('className="panel quick-expense-panel"', start);
   assert.ok(start >= 0 && result > start && expense > result, "Daily result should appear above expense entry");
-  assert.match(page, /dailyResultOre\(document, workspaceId, today\)/);
-  assert.match(page, /todaysResult < 0 \? " is-negative" : ""/);
-  assert.match(page, /todaysResult > 0 \? "\+" : ""/);
+  assert.match(page, /dailyResultOre\(document, workspaceId, expenseDay\)/);
+  assert.match(page, /selectedDayResult < 0 \? " is-negative" : ""/);
+  assert.match(page, /selectedDayResult > 0 \? "\+" : ""/);
   assert.match(page, /useState<Tab>\("today"\)/, "Today's expenses remains the default view");
+});
+
+
+test("UX: date refreshes on app foreground without changing a manually selected historical date", () => {
+  assert.match(page, /window\.document\.addEventListener\("visibilitychange", onVisibilityChange\)/);
+  assert.match(page, /window\.addEventListener\("focus", refreshDay\)/);
+  assert.match(page, /setExpenseDay\(previous => previous === lastToday \? current : previous\)/);
+  assert.match(page, /window\.document\.removeEventListener\("visibilitychange", onVisibilityChange\)/);
+});
+test("UX: result follows selected date, date remains accessible and amount is focused", () => {
+  assert.match(page, /dailyResultOre\(document, workspaceId, expenseDay\)/);
+  assert.match(page, /RESULTAT FÖR VALD DAG/);
+  assert.match(page, /<details className="expense-date-options" open=\{!isTodayExpense\}>/);
+  assert.match(page, /ref=\{amountInput\} id="expense-amount"/);
+});
+test("UX: reduce status clutter, enlarge mobile controls, and explain month scrolling", () => {
+  const stylesheet = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+  const monthMarkup = readFileSync(new URL("../src/components/MonthlyTable.tsx", import.meta.url), "utf8");
+  assert.match(page, /includes\(cloud\.message\) \? "" : cloud\.message/);
+  assert.match(stylesheet, /\.icon-button\{min-width:44px;width:44px;height:44px/);
+  assert.match(stylesheet, /\.mobile-nav-item\{min-height:44px\}/);
+  assert.match(monthMarkup, /Svep tabellen i sidled/);
 });

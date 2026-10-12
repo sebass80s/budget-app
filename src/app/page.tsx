@@ -46,12 +46,33 @@ export default function HomePage() {
   const [workspaceName, setWorkspaceName] = useState("Min ekonomi");
   const [opening, setOpening] = useState("0");
   const fileInput = useRef<HTMLInputElement>(null);
+  const amountInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const current = todayLocal();
-    setToday(current);
-    setExpenseDay(current);
+    let lastToday = todayLocal();
+    setToday(lastToday);
+    setExpenseDay(lastToday);
+    // Installed iPhone PWAs can stay mounted across midnight.
+    const refreshDay = () => {
+      const current = todayLocal();
+      if (current === lastToday) return;
+      setToday(current);
+      setExpenseDay(previous => previous === lastToday ? current : previous);
+      lastToday = current;
+    };
+    const onVisibilityChange = () => {
+      if (!window.document.hidden) refreshDay();
+    };
+    window.document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("focus", refreshDay);
+    return () => {
+      window.document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("focus", refreshDay);
+    };
   }, []);
+  useEffect(() => {
+    if (tab === "new") amountInput.current?.focus({ preventScroll: true });
+  }, [tab]);
   useEffect(() => {
     if (!workspace) return;
     setWorkspaceName(workspace.name);
@@ -62,17 +83,23 @@ export default function HomePage() {
     .filter(t => t.workspaceId === workspaceId && t.bookedOn === today && t.amountOre < 0)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [document, today, workspaceId]);
   const todaysTotal = todaysExpenses.reduce((sum, item) => sum + Math.abs(item.amountOre), 0);
-  const todaysResult = document ? dailyResultOre(document, workspaceId, today) : 0;
+  const selectedDayResult = document ? dailyResultOre(document, workspaceId, expenseDay) : 0;
+  const isTodayExpense = expenseDay === today;
   const activeRecurring = useMemo(() => (document?.recurring ?? [])
     .filter(r => r.workspaceId === workspaceId && r.endsOn === null), [document, workspaceId]);
   const oldRecurring = useMemo(() => (document?.recurring ?? [])
     .filter(r => r.workspaceId === workspaceId && r.endsOn !== null), [document, workspaceId]);
 
   function show(tabId: Tab) { setTab(tabId); setNotice(""); }
-  function newExpense(date = today) { setExpenseDay(date); show("new"); }
+  function newExpense(date = todayLocal()) {
+    setExpenseDay(date);
+    show("new");
+    amountInput.current?.focus({ preventScroll: true });
+  }
 
   async function addExpense(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setNotice("");
     const ore = kronaToOre(amount);
     if (!document || !ore || !expenseDay) {
       setNotice("Ange ett giltigt belopp över noll.");
@@ -96,6 +123,7 @@ export default function HomePage() {
 
   async function addFixed(event: React.FormEvent<HTMLFormElement>, kind: FixedKind) {
     event.preventDefault();
+    setNotice("");
     if (!document) return;
     const label = (kind === "income" ? incomeLabel : fixedLabel).trim();
     const ore = kronaToOre(kind === "income" ? incomeAmount : fixedAmount);
@@ -228,6 +256,8 @@ export default function HomePage() {
     </main>;
   }
   if (!document || !workspace) return <main className="loading">Hämtar budget från Firebase …</main>;
+  const cloudMessage = ["Sparat i Firebase.", "Uppdaterad från Firebase.", "Sparar i Firebase …"]
+    .includes(cloud.message) ? "" : cloud.message;
 
   return <div className="shell">
     <aside className="sidebar">
@@ -264,34 +294,39 @@ export default function HomePage() {
           </div>
           <button type="button" className="button button-secondary" onClick={() => newExpense()}>+ Ny utgift</button>
         </div>}
-        {cloud.message && <div className="notice" role="status">{cloud.message}</div>}
+        {cloudMessage && <div className="notice notice-error" role="alert">{cloudMessage}</div>}
         {notice && <div className="notice" role="status">{notice}
           <button type="button" onClick={() => setNotice("")} aria-label="Stäng meddelandet">×</button>
         </div>}
 
         {tab === "new" && <div className="simple-home">
           <section className="day-result-card" aria-labelledby="day-result-heading">
-            <div className="mini-caption" id="day-result-heading">DAGENS RESULTAT</div>
-            <div className={"day-result-amount" + (todaysResult < 0 ? " is-negative" : "")}>
-              {todaysResult > 0 ? "+" : ""}{money(todaysResult)}
+            <div className="mini-caption" id="day-result-heading">
+              {isTodayExpense ? "DAGENS RESULTAT" : "RESULTAT FÖR VALD DAG"}
             </div>
-            <p>{formatDay(today)} · Efter fasta inkomster, fasta kostnader och registrerade händelser</p>
+            <div className={"day-result-amount" + (selectedDayResult < 0 ? " is-negative" : "")} aria-live="polite">
+              {selectedDayResult > 0 ? "+" : ""}{money(selectedDayResult)}
+            </div>
+            <p>{formatDay(expenseDay)} · Inklusive fasta inkomster, kostnader och registrerade händelser</p>
           </section>
           <section className="panel quick-expense-panel" aria-labelledby="new-expense-heading">
             <div className="mini-caption">SNABBT OCH ENKELT</div>
             <h1 id="new-expense-heading" className="expense-heading">Lägg till utgift</h1>
             <form className="quick-expense-form" onSubmit={addExpense}>
               <label htmlFor="expense-amount">Belopp (kr)
-                <input id="expense-amount" type="text" required inputMode="decimal"
+                <input ref={amountInput} id="expense-amount" type="text" required inputMode="decimal"
                   autoComplete="off" placeholder="0,00" value={amount} onChange={e => setAmount(e.target.value)} />
               </label>
               <label htmlFor="expense-description">Vad köpte du? <span>(valfritt)</span>
                 <input id="expense-description" type="text" maxLength={90}
                   placeholder="Till exempel lunch" value={description} onChange={e => setDescription(e.target.value)} />
               </label>
-              <label htmlFor="expense-date" className="expense-date-label">Datum
-                <input id="expense-date" type="date" required value={expenseDay} onChange={e => setExpenseDay(e.target.value)} />
-              </label>
+              <details className="expense-date-options" open={!isTodayExpense}>
+                <summary>{isTodayExpense ? "Ändra datum (idag)" : "Datum: " + formatDay(expenseDay)}</summary>
+                <label htmlFor="expense-date" className="expense-date-label">Datum för utgiften
+                  <input id="expense-date" type="date" required value={expenseDay} onChange={e => setExpenseDay(e.target.value)} />
+                </label>
+              </details>
               <button disabled={cloud.status === "saving"} type="submit" className="button button-primary quick-submit">
                 {cloud.status === "saving" ? "Sparar …" : "Spara utgift"}
               </button>
