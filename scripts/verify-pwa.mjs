@@ -25,6 +25,11 @@ const sw = await readFile(path.join(out, "sw.js"), "utf8");
 assert.ok(sw.includes(base + "index.html"), "SW missing offline app shell");
 assert.ok(sw.includes(base + "_next/static/"), "SW missing Next.js assets");
 assert.ok(sw.includes('self.addEventListener("fetch"'), "SW missing offline handler");
+const assetList = sw.match(/^const ASSETS = (\\[[^\\n]+\\]);/m);
+assert.ok(assetList, "SW missing list of cached assets");
+const precached = JSON.parse(assetList[1]);
+assert.ok(!precached.includes(base + "firebase-config.json"), "Cloud config must never be pre-cached");
+assert.ok(sw.includes('fetch(request, {cache: "no-store"})'), "Cloud config must always be loaded from network");
 const listeners = new Map();
 const env = {
   self: {

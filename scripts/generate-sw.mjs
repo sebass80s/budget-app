@@ -14,7 +14,7 @@ async function traverse(folder, prefix = "") {
     if (entry.isDirectory()) await traverse(path.join(folder, entry.name), name);
     else if (entry.isFile() &&
       /\.(html|js|css|txt|json|webmanifest|png|svg|ico|woff2?|avif|webp)$/i.test(entry.name) &&
-      name !== "sw.js") files.push(name);
+      name !== "sw.js" && name !== "firebase-config.json") files.push(name);
   }
 }
 await traverse(outDir);
@@ -48,6 +48,11 @@ const source = [
   '  if (request.method !== "GET") return;',
   '  const url = new URL(request.url);',
   '  if (url.origin !== self.location.origin || !url.pathname.startsWith(ROOT)) return;',
+  '  // Firebase web config is deployment configuration, never cache it offline.',
+  '  if (url.pathname === ROOT + "firebase-config.json") {',
+  '    event.respondWith(fetch(request, {cache: "no-store"}));',
+  '    return;',
+  '  }',
   '  if (request.mode === "navigate") {',
   '    event.respondWith(fetch(request).catch(async () => (await caches.match(ROOT + "index.html")) || Response.error()));',
   '    return;',
