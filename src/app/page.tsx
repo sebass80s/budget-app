@@ -9,7 +9,7 @@ import {
   validDocument, virtualBalanceOre,
 } from "@/lib/budget";
 
-type Tab = "overview" | "monthly" | "transactions" | "recurring" | "settings";
+type Tab = "overview" | "insights" | "monthly" | "transactions" | "recurring" | "settings";
 type EntryType = "expense" | "income";
 const STORAGE_KEY = "budget-app:v1";
 const currency = new Intl.NumberFormat("sv-SE", { style: "currency", currency: "SEK", maximumFractionDigits: 0 });
@@ -23,7 +23,8 @@ const cadenceLabel: Record<Cadence, string> = {
   yearly: "Varje år",
 };
 const nav: { id: Tab; label: string; icon: string }[] = [
-  { id: "overview", label: "Översikt", icon: "▦" },
+  { id: "overview", label: "Idag", icon: "◉" },
+  { id: "insights", label: "Utveckling", icon: "▥" },
   { id: "monthly", label: "Månadsvy", icon: "▤" },
   { id: "transactions", label: "Händelser", icon: "⇄" },
   { id: "recurring", label: "Återkommande", icon: "↻" },
@@ -80,6 +81,8 @@ export default function HomePage() {
   const [tab, setTab] = useState<Tab>("overview");
   const [currentDay, setCurrentDay] = useState("2026-10-12");
   const [notice, setNotice] = useState("");
+  const [quickAmount, setQuickAmount] = useState("");
+  const [quickLabel, setQuickLabel] = useState("");
   const [txLabel, setTxLabel] = useState("");
   const [txAmount, setTxAmount] = useState("");
   const [txType, setTxType] = useState<EntryType>("expense");
@@ -134,6 +137,27 @@ export default function HomePage() {
 
   function mutate(update: (value: BudgetDocument) => BudgetDocument) {
     setDocument(prev => prev ? update(prev) : prev);
+  }
+  function addQuickExpense(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const amount = kronaToOre(quickAmount);
+    if (!document || !amount) {
+      setNotice("Ange ett giltigt belopp över noll, med högst två decimaler.");
+      return;
+    }
+    const row: Transaction = {
+      id: crypto.randomUUID(),
+      workspaceId,
+      memberId: document.members[0]?.id ?? null,
+      label: quickLabel.trim() || "Utgift",
+      amountOre: -amount,
+      bookedOn: currentDay,
+      createdAt: new Date().toISOString(),
+    };
+    mutate(d => ({ ...d, transactions: [...d.transactions, row] }));
+    setQuickAmount("");
+    setQuickLabel("");
+    setNotice(`Utgift på ${asMoney(amount)} registrerad.`);
   }
   function addTransaction(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -251,25 +275,43 @@ export default function HomePage() {
             className={tab === item.id ? "mobile-nav-item selected" : "mobile-nav-item"}>{item.label}</button>)}
         </nav>
         <main className="main">
-          <div className="title-row">
-            <div><div className="eyebrow">{formatDate(currentDay).toUpperCase()} · {workspace.name.toUpperCase()}</div><h1>{tab === "overview" ? "Din ekonomi, i klartext." : nav.find(n => n.id === tab)?.label}</h1>
-              <p className="lead">{tab === "overview" ? "Dagens resultat först. Små beslut som blir stora över tid." :
+          {tab !== "overview" && <div className="title-row">
+            <div><div className="eyebrow">{formatDate(currentDay).toUpperCase()} · {workspace.name.toUpperCase()}</div>
+              <h1>{nav.find(n => n.id === tab)?.label}</h1>
+              <p className="lead">{tab === "insights" ? "Saldo, prognoser och ekonomins utveckling." :
                 tab === "monthly" ? "Varje dag i månaden, samlad på ett ställe." :
                 tab === "transactions" ? "Registrera det som händer mellan löningarna." :
                 tab === "recurring" ? "Grunden som driver ditt dagliga ekonomiska netto." :
                 "Din data, din kontroll."}</p></div>
             <div className="top-actions"><span className="privacy-pill">● Endast på enheten</span>{document.demo && <span className="demo-pill">DEMODATA</span>}</div>
-          </div>
+          </div>}
           {notice && <div className="notice" role="status">{notice}<button type="button" onClick={() => setNotice("")} aria-label="Stäng meddelande">×</button></div>}
           {document.demo && <div className="demo-notice"><div><strong>Du tittar på en demo.</strong> Alla siffror är påhittade. Börja med en tom budget när du vill lägga in din egen ekonomi.</div><button type="button" onClick={clearDemo} className="button button-outline">Börja med min budget →</button></div>}
-          {tab === "overview" && <>
-            <section className="hero-grid">
-              <div className="hero-main">
-                <div className="hero-overline">DAGENS RESULTAT <span className="info-circle" title="Dagligt grundnetto plus dagens registrerade utgifter och extra inkomster">i</span></div>
-                <div className={todayResult >= 0 ? "hero-number" : "hero-number negative"}>{signedMoney(todayResult)}</div>
-                <p>Fasta poster och dagens registrerade händelser, sammantaget.</p>
-                <div className="hero-stripe"><span>✦</span> Varje dag är en ny tur.</div>
-              </div>
+          {tab === "overview" && <div className="simple-home">
+            <section className="hero-main focused-hero" aria-label="Dagens resultat">
+              <div className="hero-overline">DAGENS RESULTAT</div>
+              <div className={todayResult >= 0 ? "hero-number" : "hero-number negative"}>{signedMoney(todayResult)}</div>
+              <p>{formatDate(currentDay)}</p>
+            </section>
+            <section className="panel quick-expense-panel" aria-labelledby="quick-expense-heading">
+              <h2 id="quick-expense-heading">Registrera utgift</h2>
+              <form className="quick-expense-form" onSubmit={addQuickExpense}>
+                <label htmlFor="quick-amount">Belopp (kr)
+                  <input id="quick-amount" type="text" required inputMode="decimal"
+                    placeholder="0,00" value={quickAmount}
+                    onChange={event => setQuickAmount(event.target.value)} />
+                </label>
+                <label htmlFor="quick-label">Vad köpte du? <span>(valfritt)</span>
+                  <input id="quick-label" type="text" maxLength={90}
+                    placeholder="Till exempel lunch" value={quickLabel}
+                    onChange={event => setQuickLabel(event.target.value)} />
+                </label>
+                <button type="submit" className="button button-primary quick-submit">+ Lägg till utgift</button>
+              </form>
+            </section>
+          </div>}
+          {tab === "insights" && <>
+            <section className="insights-balance">
               <div className="hero-side">
                 <div className="mini-caption">BERÄKNAT BUDGETSALDO</div>
                 <div className="balance-figure">{asMoney(currentBalance)}</div>
