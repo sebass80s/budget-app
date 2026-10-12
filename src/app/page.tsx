@@ -253,7 +253,7 @@ export default function HomePage() {
         <main className="main">
           <div className="title-row">
             <div><div className="eyebrow">{formatDate(currentDay).toUpperCase()} · {workspace.name.toUpperCase()}</div><h1>{tab === "overview" ? "Din ekonomi, i klartext." : nav.find(n => n.id === tab)?.label}</h1>
-              <p className="lead">{tab === "overview" ? "Ett dagligt resultat. Små beslut som blir stora över tid." :
+              <p className="lead">{tab === "overview" ? "Dagens resultat först. Små beslut som blir stora över tid." :
                 tab === "monthly" ? "Varje dag i månaden, samlad på ett ställe." :
                 tab === "transactions" ? "Registrera det som händer mellan löningarna." :
                 tab === "recurring" ? "Grunden som driver ditt dagliga ekonomiska netto." :
@@ -265,9 +265,9 @@ export default function HomePage() {
           {tab === "overview" && <>
             <section className="hero-grid">
               <div className="hero-main">
-                <div className="hero-overline">DAGLIGT GRUNDNETTO <span className="info-circle" title="Fasta inkomster och utgifter fördelade över årets dagar">i</span></div>
-                <div className={dailyNet >= 0 ? "hero-number" : "hero-number negative"}>{signedMoney(dailyNet)}<span>/dag</span></div>
-                <p>Din ekonomi tickar {dailyNet >= 0 ? "uppåt" : "nedåt"} varje dag, innan rörliga köp.</p>
+                <div className="hero-overline">DAGENS RESULTAT <span className="info-circle" title="Dagligt grundnetto plus dagens registrerade utgifter och extra inkomster">i</span></div>
+                <div className={todayResult >= 0 ? "hero-number" : "hero-number negative"}>{signedMoney(todayResult)}</div>
+                <p>Fasta poster och dagens registrerade händelser, sammantaget.</p>
                 <div className="hero-stripe"><span>✦</span> Varje dag är en ny tur.</div>
               </div>
               <div className="hero-side">
@@ -281,7 +281,7 @@ export default function HomePage() {
               </div>
             </section>
             <section className="metric-grid" aria-label="Periodresultat">
-              <div className="metric"><div className="metric-label">Idag <span>↗</span></div><div className={todayResult >= 0 ? "metric-value positive" : "metric-value negative"}>{signedMoney(todayResult)}</div><p>Inkl. dagens registrerade köp</p></div>
+              <div className="metric"><div className="metric-label">Dagligt grundnetto <span>↗</span></div><div className={dailyNet >= 0 ? "metric-value positive" : "metric-value negative"}>{signedMoney(dailyNet)}</div><p>Fasta inkomster minus fasta kostnader per dag</p></div>
               <div className="metric"><div className="metric-label">Denna vecka <span>↗</span></div><div className={weekResult >= 0 ? "metric-value positive" : "metric-value negative"}>{signedMoney(weekResult)}</div><p>Från måndag till idag</p></div>
               <div className="metric"><div className="metric-label">Denna månad <span>↗</span></div><div className={monthResult >= 0 ? "metric-value positive" : "metric-value negative"}>{signedMoney(monthResult)}</div><p>Från månadens början</p></div>
             </section>

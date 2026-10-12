@@ -21,7 +21,7 @@ Därefter publiceras varje uppdatering på `main` automatiskt via GitHub Actions
 
 ## Vad finns?
 
-- Dagsnetto beräknat från återkommande inkomster och fasta utgifter: per vecka, månad, kvartal eller år.
+- **Dagens resultat står i fokus på startsidan**: dagsnetto från fasta poster plus dagens registrerade utgifter och extra inkomster. Dagsnettot visas som ett separat, mindre nyckeltal. Återkommande belopp kan vara per vecka, månad, kvartal eller år.
 - Registrera rörliga utgifter och extra inkomster i ören, med datum.
 - **Månadsvy:** en tabellrad för varje datum med registrerade händelser, dagsresultat och löpande budgetsaldo. Fasta inkomster och kostnader ingår automatiskt i resultatet, men räknas inte upp i tabellen eller dagdetaljerna. Bläddra mellan månader och fäll ut en dag för att se enbart manuellt registrerade händelser.
 - Beräknat budgetsaldos utveckling, dags-, vecko-, månadsresultat samt enkel 30-dagarsprognos.
