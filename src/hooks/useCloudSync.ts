@@ -8,7 +8,7 @@ import {
   logIn, register, logOut, readCloud, writeCloud,
 } from "@/lib/firebase-cloud";
 
-type Status = "loading" | "disabled" | "signedOut" | "ready" | "active" | "saving" | "blocked" | "error";
+type Status = "loading" | "disabled" | "signedOut" | "ready" | "active" | "saving" | "offline" | "blocked" | "error";
 const baseKey = (uid: string) => "budget-app:cloud-last-synced:" + uid;
 const stringify = (budget: BudgetDocument) => JSON.stringify(budget);
 
@@ -57,6 +57,7 @@ export function useCloudSync(
             revision.current = cloud.revision;
             lastSaved.current = stringify(cloud.budget);
             window.localStorage.setItem(baseKey(user.uid),lastSaved.current);
+            window.localStorage.setItem("budget-app:local-owner-uid", user.uid);
             enabled.current = true;
             replaceBudget(cloud.budget);
             setStatus("active");
@@ -69,6 +70,7 @@ export function useCloudSync(
             revision.current = nextRevision;
             lastSaved.current = stringify(blank);
             window.localStorage.setItem(baseKey(user.uid), lastSaved.current);
+            window.localStorage.setItem("budget-app:local-owner-uid", user.uid);
             enabled.current = true;
             replaceBudget(blank);
             setExists(true);
@@ -82,7 +84,19 @@ export function useCloudSync(
               : "Du har en äldre lokal budget på den här enheten. Välj Lägg min budget i molnet för att koppla den till kontot.");
           }
         } catch (error) {
-          if (!stopped) { setStatus("error"); setMessage(error instanceof Error ? error.message : "Molnet kunde inte läsas."); }
+          if (stopped || uid.current !== user.uid) return;
+          const local = budgetRef.current;
+          const previous = window.localStorage.getItem(baseKey(user.uid));
+          const ownerMatches = window.localStorage.getItem("budget-app:local-owner-uid") === user.uid;
+          if (!navigator.onLine && local && !local.demo &&
+              (ownerMatches || previous === stringify(local))) {
+            enabled.current = false;
+            setStatus("offline");
+            setMessage("Du är offline. Din budget visas från enheten och ändringar sparas lokalt. Anslut och ladda om när du vill hämta molnets senaste version. Offlineändringar sammanfogas inte automatiskt.");
+          } else {
+            setStatus("error");
+            setMessage(error instanceof Error ? error.message : "Molnet kunde inte läsas.");
+          }
         }
       });
     }).catch(error => {
@@ -107,6 +121,7 @@ export function useCloudSync(
         revision.current = nextRevision;
         lastSaved.current = serialized;
         window.localStorage.setItem(baseKey(account), serialized);
+        window.localStorage.setItem("budget-app:local-owner-uid", account);
         setStatus("active");
         setMessage("Molnbudgeten är sparad.");
       } catch (error) {
@@ -157,6 +172,7 @@ export function useCloudSync(
         revision.current = cloud.revision;
         lastSaved.current = stringify(cloud.budget);
         window.localStorage.setItem(baseKey(account),lastSaved.current);
+        window.localStorage.setItem("budget-app:local-owner-uid", account);
         enabled.current = true;
         replaceBudget(cloud.budget);
         setExists(true); setStatus("active");
@@ -173,6 +189,7 @@ export function useCloudSync(
         revision.current = next;
         lastSaved.current = stringify(budget);
         window.localStorage.setItem(baseKey(account),lastSaved.current);
+        window.localStorage.setItem("budget-app:local-owner-uid", account);
         enabled.current = true;
         setExists(true); setStatus("active");
         setMessage("Budgeten har sparats i molnet och synkronisering är aktiv.");
@@ -204,6 +221,7 @@ export function useCloudSync(
         revision.current = next;
         lastSaved.current = serial;
         window.localStorage.setItem(baseKey(account),serial);
+        window.localStorage.setItem("budget-app:local-owner-uid", account);
       }
       setStatus("active");
       setMessage("Synkronisering återupptagen.");

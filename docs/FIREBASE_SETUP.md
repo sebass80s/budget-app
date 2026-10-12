@@ -48,3 +48,7 @@ Budget App körs fortfarande på GitHub Pages. Molnkopplingen är frivillig och 
 ## Begränsningar
 
 Synkroniseringen kräver internet. Den befintliga lokala budgeten och PWA:s offlinefunktion finns kvar, men **offlineändringar går inte att sammanfoga automatiskt**; använd export/import för säker återställning. Den här första Firestore-versionen lagrar budgeten som ett versionshanterat dokument med storleksgräns runt 790 KB. CI testar koden, inte live-reglerna. Verifiera inloggning, att reglerna skyddar data och två enheters synkronisering innan du förlitar dig på molnet.
+
+
+## Installerad app utan uppkoppling
+Efter ett lyckat onlinebesök sparas den **offentliga** Firebase-webbkonfigurationen lokalt. Om användarens Firebase-session fortfarande finns kvar och en lokal budget tillhör samma konto kan den visas offline. Ändringar som görs offline stannar på enheten och skrivs **inte** automatiskt över molnkopian vid återanslutning. Ladda om online och hantera eventuell konflikt manuellt.

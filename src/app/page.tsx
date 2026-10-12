@@ -259,7 +259,7 @@ export default function HomePage() {
 
   if (!hydrated || cloud.status === "loading") return <main className="loading">Öppnar Budget App …</main>;
   // Keep the budget screen private until authentication and cloud connection are ready.
-  if (cloud.status !== "active" && cloud.status !== "saving") {
+  if (cloud.status !== "active" && cloud.status !== "saving" && cloud.status !== "offline") {
     return <main className="auth-screen">
       <div className="auth-layout">
         <div className="auth-intro">
