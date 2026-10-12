@@ -35,7 +35,7 @@ Budget App körs fortfarande på GitHub Pages. Molnkopplingen är frivillig och 
 ```
 
 - Firebase webbkonfiguration innehåller offentliga identifierare, inte service-account-hemligheter. Lägg **aldrig** in en privat nyckel, Admin SDK JSON eller service_role här.
-- Kör [Deploy to GitHub Pages](https://github.com/sebass80s/budget-app/actions/workflows/deploy-pages.yml) manuellt på `main`. Vid bygget genereras `public/firebase-config.json` och publiceras som en del av den statiska appen.
+- Kör [Deploy to GitHub Pages](https://github.com/sebass80s/budget-app/actions/workflows/deploy-pages.yml) manuellt på `main`, eller invänta nästa publicering. Vid bygget genereras `public/firebase-config.json` och publiceras som en del av den statiska appen. Denna konfiguration undantas från PWA:s offline-cache för att undvika gamla inställningar. Om den installerade appen ändå visar lokal-only efter första bytet, stäng och öppna appen igen efter uppdateringen.
 
 ## 4. Använd
 
