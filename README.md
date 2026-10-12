@@ -19,6 +19,20 @@ https://sebass80s.github.io/budget-app/
 
 Därefter publiceras varje uppdatering på `main` automatiskt via GitHub Actions. Pull requests kör separat test/typkontroll/build utan att publicera. För statisk publicering används Next.js `output: "export"` samt base path `/budget-app`.
 
+## Installera som PWA på mobil
+
+**Budget App är en installerbar webbapp**, inte en App Store-app. Öppna
+https://sebass80s.github.io/budget-app/ på din telefon.
+
+- **iPhone (Safari):** Dela → Lägg till på hemskärmen → Lägg till.
+- **Android (Chrome):** Meny → Installera app (eller Lägg till på startskärmen).
+- Öppna därefter Budget från den nya appikonen. Den startar i eget fönster.
+- Efter första online-besöket lagras själva webbappens kod för ett grundläggande **offline-läge**. Vid nästa uppkoppling kan en uppdatering laddas.
+
+**Viktigt före installation:** Uppgifter ligger fortsatt i varje webbläsares lokala lagring, inte på en server. iOS kan lagra hemskärmsappar separat från Safari. Om du redan lagt in riktiga uppgifter i Safari, exportera en backup under Inställningar och importera den vid behov i den installerade appen. Offline-läget synkroniserar inte ekonomiska data och ersätter inte säkerhetskopior. Ingen notisfunktion eller bankintegration ingår.
+
+PWA-bygget genererar PNG-appikoner utan extra dependencies och ett versionshanterat service worker-skript med cachade statiska resurser. Manifest, Pages-scope, Apple-ikon och offline-fallback testas vid varje produktionsbygge.
+
 ## Vad finns?
 
 - **Startsidan visar bara dagens resultat och ett snabbformulär för löpande utgifter.** Belopp krävs, beskrivning är valfri och utgiften bokförs på dagens datum. Dagens resultat inkluderar dagsnettot och registrerade händelser.
