@@ -49,6 +49,10 @@ Efter inloggning visas fyra korta steg: **Välkommen → Månadsinkomst → Fast
 
 När guiden slutförs eller hoppas över markeras den färdig i Firebase. Den visas inte igen efter omladdning eller på andra enheter. Guiden kan öppnas manuellt under **Inställningar → Fler inställningar → Visa introduktionen**, utan att befintlig budget raderas eller skapar en ny. En avbruten onboarding kan återupptas efter omladdning med redan sparade poster intakta.
 
+## Mobilvy
+
+På telefon ryms alla tre menyval på en rad eller radbryts inom sina respektive fält. **Dagens utgifter** och **+ Ny utgift** ska aldrig orsaka horisontell sidscroll, inte heller när belopp eller utgiftsbeskrivningar är långa. Redigeringsfält och åtgärdsknappar anpassas till smala skärmar. **Månadsvy** har fortfarande avsiktlig sidscroll **inne i själva tabellen**, inte på hela sidan.
+
 ## Enkelt användarflöde
 
 **Startsidan:** Dagens utgifter öppnas automatiskt efter inloggning. En tydlig **+ Ny utgift**-knapp öppnar ett enkelt formulär med belopp, valfri beskrivning och datum förvalt till idag. Utgiften syns först när Firebase bekräftat sparningen.

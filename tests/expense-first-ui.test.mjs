@@ -104,3 +104,23 @@ test("new account onboarding opens only from Firebase marker and existing accoun
   assert.match(setup,/Spara kostnad/);
   assert.match(setup,/Lägg till min första utgift/);
 });
+
+
+test("mobile expense views fit the viewport instead of adding horizontal scroll", () => {
+  const css = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+  const fix = css.slice(css.indexOf("/* Mobile overflow fix:"));
+  assert.ok(fix.length > 100, "mobile overflow rules are present");
+  assert.match(fix, /@media\(max-width:760px\)/);
+  assert.match(fix, /\.mobile-nav\{\s*display:grid;\s*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(fix, /overflow:visible/);
+  assert.match(fix, /\.mobile-nav-item\{\s*min-width:0;/);
+  assert.match(fix, /white-space:normal/);
+  assert.match(fix, /\.daily-expenses,\.simple-home,\.daily-summary/);
+  assert.match(fix, /\.quick-expense-form label,\.quick-expense-form input,\.expense-date-options/);
+  assert.match(fix, /\.today-preview>strong\{min-width:0;/);
+  assert.match(fix, /\.expense-item>\.list-row>\.list-row-right\{/);
+  assert.doesNotMatch(fix, /html\s*,\s*body\s*\{[^}]*overflow-x:\s*hidden/s,
+    "do not mask the overflow by clipping the entire document");
+  const month = readFileSync(new URL("../src/app/month.css", import.meta.url), "utf8");
+  assert.match(month, /\.month-scroll\{max-width:100%;overflow-x:auto/);
+});

@@ -309,3 +309,50 @@ h2{font-size:18px;letter-spacing:-.5px;line-height:1.3;margin:6px 0 0}
   .setup-content{gap:14px}
   .setup-footer span{max-width:180px}
 }
+
+
+/* Mobile overflow fix: the three menu destinations must fit without side scrolling.
+   Month-view's internal scroll remains intentional and scoped to .month-scroll. */
+@media(max-width:760px){
+  .shell,.main-shell,.main{min-width:0;max-width:100%}
+  .main-shell{width:100%}
+  .mobile-head{min-width:0;gap:10px}
+  .mobile-head .brand-home{width:auto;min-width:0;flex:0 1 auto}
+  .mobile-head .mobile-expense-action{flex:0 0 auto}
+  .mobile-nav{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:5px;
+    width:100%;
+    overflow:visible;
+    padding:8px 12px;
+  }
+  .mobile-nav-item{
+    min-width:0;
+    width:100%;
+    white-space:normal;
+    overflow-wrap:anywhere;
+    line-height:1.25;
+    padding:9px 3px;
+    text-align:center;
+  }
+
+  .daily-expenses,.simple-home,.daily-summary,.quick-expense-panel,.quick-expense-form,
+  .expense-item,.expense-edit-form{width:100%;min-width:0;max-width:100%}
+  .quick-expense-form label,.quick-expense-form input,.expense-date-options,
+  .expense-date-options input{min-width:0;max-width:100%}
+  .daily-summary{flex-wrap:wrap}
+  .daily-summary>strong{min-width:0;max-width:100%;overflow-wrap:anywhere}
+  .today-preview{min-width:0;gap:9px}
+  .today-preview>span{min-width:0;flex:1 1 auto}
+  .today-preview>strong{min-width:0;flex:0 1 auto;text-align:right;overflow-wrap:anywhere}
+  .expense-item>.list-row>div:first-child{min-width:0;flex:1 1 120px}
+  .expense-item>.list-row>.list-row-right{
+    min-width:0;
+    max-width:100%;
+    white-space:normal;
+    gap:7px;
+  }
+  .expense-item .list-row-right>strong{min-width:0;overflow-wrap:anywhere}
+  .expense-edit-fields,.expense-edit-fields label{min-width:0;max-width:100%}
+}
