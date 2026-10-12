@@ -57,3 +57,15 @@
 .month-control{width:44px;height:44px}
 .month-today,.month-add{min-height:44px}
 .month-day-button{min-height:44px}
+
+
+/* Inline editing of past expenses keeps month/day expansion intact. */
+.month-expense-item{min-width:0}
+.month-detail{align-items:center;flex-wrap:wrap;white-space:normal}
+.month-detail-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:flex-end;margin-left:auto}
+.month-detail-actions>strong{white-space:nowrap}
+.month-details-row .expense-edit-form{margin-top:10px}
+@media(max-width:760px){
+  .month-detail-actions{gap:5px}
+  .month-detail-actions .expense-edit-trigger{min-height:44px}
+}

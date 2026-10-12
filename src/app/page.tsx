@@ -364,7 +364,7 @@ export default function HomePage() {
                     <strong className="negative">{money(Math.abs(item.amountOre))}</strong>
                     <button type="button" className="quiet-button expense-edit-trigger"
                       aria-expanded={editingTodayId === item.id}
-                      aria-controls={"edit-expense-" + item.id}
+                      aria-controls={editingTodayId === item.id ? "edit-expense-" + item.id : undefined}
                       disabled={cloud.status === "saving"}
                       onClick={() => setEditingTodayId(current => current === item.id ? null : item.id)}>
                       Ändra

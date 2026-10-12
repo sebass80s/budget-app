@@ -15,6 +15,9 @@ export function ExpenseEditor({
   const [amount, setAmount] = useState(String(Math.abs(transaction.amountOre) / 100).replace(".", ","));
   const [label, setLabel] = useState(transaction.label === "Utgift" ? "" : transaction.label);
   const [bookedOn, setBookedOn] = useState(transaction.bookedOn);
+  // Capture the original snapshot. A remote Firestore edit while this form is open
+  // must cause a conflict rather than silently overwrite the other device.
+  const original = useRef(transaction);
   const input = useRef<HTMLInputElement>(null);
 
   useEffect(() => { input.current?.focus({ preventScroll: true }); }, []);
@@ -22,7 +25,7 @@ export function ExpenseEditor({
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (saving) return;
-    const saved = await onSave(transaction, { amount, label, bookedOn });
+    const saved = await onSave(original.current, { amount, label, bookedOn });
     if (saved) onCancel();
   }
 
