@@ -6,7 +6,7 @@ import { MonthlyTable } from "@/components/MonthlyTable";
 import { useCloudSync } from "@/hooks/useCloudSync";
 import {
   type BudgetDocument, type Cadence, type Recurring, type Transaction,
-  addDays, createEmptyBudget, kronaToOre, replaceRecurringFrom, todayLocal,
+  addDays, createEmptyBudget, dailyResultOre, kronaToOre, replaceRecurringFrom, todayLocal,
   validDocument,
 } from "@/lib/budget";
 
@@ -62,6 +62,7 @@ export default function HomePage() {
     .filter(t => t.workspaceId === workspaceId && t.bookedOn === today && t.amountOre < 0)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [document, today, workspaceId]);
   const todaysTotal = todaysExpenses.reduce((sum, item) => sum + Math.abs(item.amountOre), 0);
+  const todaysResult = document ? dailyResultOre(document, workspaceId, today) : 0;
   const activeRecurring = useMemo(() => (document?.recurring ?? [])
     .filter(r => r.workspaceId === workspaceId && r.endsOn === null), [document, workspaceId]);
   const oldRecurring = useMemo(() => (document?.recurring ?? [])
@@ -269,6 +270,13 @@ export default function HomePage() {
         </div>}
 
         {tab === "new" && <div className="simple-home">
+          <section className="day-result-card" aria-labelledby="day-result-heading">
+            <div className="mini-caption" id="day-result-heading">DAGENS RESULTAT</div>
+            <div className={"day-result-amount" + (todaysResult < 0 ? " is-negative" : "")}>
+              {todaysResult > 0 ? "+" : ""}{money(todaysResult)}
+            </div>
+            <p>{formatDay(today)} · Efter fasta inkomster, fasta kostnader och registrerade händelser</p>
+          </section>
           <section className="panel quick-expense-panel" aria-labelledby="new-expense-heading">
             <div className="mini-caption">SNABBT OCH ENKELT</div>
             <h1 id="new-expense-heading" className="expense-heading">Lägg till utgift</h1>
