@@ -399,6 +399,12 @@ export default function HomePage() {
                 <button type="button" className="button button-outline" onClick={() => fileRef.current?.click()}>↑ Importera backup</button>
                 <input ref={fileRef} type="file" accept=".json,application/json" className="hidden-file" onChange={importBackup} /></div>
               <p className="form-hint">Använd bara betrodda enheter. Lokal data kan försvinna om webbläsarens lagring rensas. Spara regelbundna säkerhetskopior.</p>
+              <div className="pwa-settings">
+                <div className="mini-caption">INSTALLERA APPEN</div>
+                <h2>Budget på hemskärmen</h2>
+                <p className="settings-copy">På iPhone: öppna i Safari, välj Dela och sedan Lägg till på hemskärmen. På Android: använd webbläsarens alternativ Installera app.</p>
+                <p className="form-hint">Appen kan öppnas utan internet efter ett första besök online. Uppgifterna sparas fortfarande bara på den här enheten, inte i molnet. Exportera en backup innan du byter webbläsare eller installerar om.</p>
+              </div>
               <button type="button" className="danger-button" onClick={clearDemo}>Börja om med tom budget</button>
             </section>
           </div>}

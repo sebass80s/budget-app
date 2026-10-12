@@ -26,6 +26,14 @@
 - Published URL: https://sebass80s.github.io/budget-app/ once Pages is enabled.
 - GitHub Pages is a static website, not a remote database. Server-only Next.js features are deliberately unavailable.
 
+## PWA and offline delivery
+- Installable manifest is served from `/budget-app/manifest.webmanifest` on GitHub Pages, with start URL and scope resolved relative to that folder.
+- Build scripts generate 192px/512px PNG icons, a 512px maskable icon, and an iOS 180px touch icon; rendered pixels are deterministic.
+- The production export includes a content-versioned service worker. It pre-caches the static exported app shell and Next.js assets for offline launch, and ignores other origins and paths.
+- **No bank data, transactions, localStorage entries, or JSON exports are cached by the service worker.** Existing localStorage data is unchanged.
+- Standalone iOS web apps may have storage isolated from Safari. Export a backup before migrating between contexts; never assume shared storage.
+- No background sync, push notifications or cross-device data storage yet.
+
 ## Data, privacy and limitations
 - MVP stores local data in **this browser's localStorage**, not GitHub or a server.
 - No accounts, authentication, real synchronization, sharing or encryption in MVP.
