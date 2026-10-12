@@ -47,9 +47,9 @@ test("new expense view displays live daily result above the expense form", () =>
   const result = page.indexOf('className="day-result-card"', start);
   const expense = page.indexOf('className="panel quick-expense-panel"', start);
   assert.ok(start >= 0 && result > start && expense > result, "Daily result should appear above expense entry");
-  assert.match(page, /dailyResultOre\(document, workspaceId, today\)/);
-  assert.match(page, /todaysResult < 0 \? " is-negative" : ""/);
-  assert.match(page, /todaysResult > 0 \? "\+" : ""/);
+  assert.match(page, /dailyResultOre\(document, workspaceId, expenseDay\)/);
+  assert.match(page, /selectedDayResult < 0 \? " is-negative" : ""/);
+  assert.match(page, /selectedDayResult > 0 \? "\+" : ""/);
   assert.match(page, /useState<Tab>\("today"\)/, "Today's expenses remains the default view");
 });
 
