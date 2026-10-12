@@ -29,15 +29,17 @@ https://sebass80s.github.io/budget-app/ på din telefon.
 - Öppna därefter Budget från den nya appikonen. Den startar i eget fönster.
 - Efter första online-besöket lagras själva webbappens kod för ett grundläggande **offline-läge**. Vid nästa uppkoppling kan en uppdatering laddas.
 
-**Viktigt före installation:** Budgeten synkas via det inloggade Firebase-kontot när internet finns, med en lokal kopia per enhet. iOS kan lagra hemskärmsappar separat från Safari. Offlineändringar kan inte sammanfogas automatiskt; exportera en backup före större ändringar eller ominstallation. Ingen notisfunktion eller bankintegration ingår.
+**Viktigt:** Budgetdata finns enbart i Firebase och kräver internet. PWA:n kan installeras på iPhone men budgeten kan inte ändras offline. Firebase hanterar fortsatt inloggningssession. Manuell export av JSON-backup finns i Inställningar. Ingen notisfunktion eller bankintegration ingår.
 
 PWA-bygget genererar PNG-appikoner utan extra dependencies och ett versionshanterat service worker-skript med cachade statiska resurser. Manifest, Pages-scope, Apple-ikon och offline-fallback testas vid varje produktionsbygge.
 
 ## Firebase och inloggning
 
-Appen öppnar på **inloggningsskärmen**, utan demoversion. Nya konton får automatiskt en tom budget i Firestore; befintliga konton hämtar sin molnbudget när det är säkert. Om enheten redan innehåller en annan, osynkroniserad lokal budget krävs ett aktivt val före överföring eller ersättning. Den lokala kopian skyddas, och ingen JSON-fil laddas ned automatiskt i PWA:n.
+Appen öppnar direkt med inloggning. **Firebase är den enda källan för budgetdata**. Det finns inga parallella lokala budgetkopior och ingen demoversion. Ett nytt konto får en tom budget i Firestore. Befintliga konton läser sin budget från Firebase och får uppdateringar från andra enheter automatiskt.
 
-Se [Firebase installationsguide](docs/FIREBASE_SETUP.md) för projektets inställningar. Synkronisering online har revisionskontroll. Offline-konflikter behöver hanteras manuellt; export av JSON-backup finns kvar i Inställningar.
+En registrerad utgift syns först när Firestore-transaktionen har slutförts. Utan internet kan man inte ändra budgeten. Gamla eventuella `localStorage`-budgetar lämnas orörda, men används inte längre. Manuell JSON-export och -import finns kvar som säkerhetskopieringsverktyg.
+
+Se [Firebase installationsguide](docs/FIREBASE_SETUP.md) för inställningar.
 
 ## Vad finns?
 
@@ -47,12 +49,12 @@ Se [Firebase installationsguide](docs/FIREBASE_SETUP.md) för projektets instäl
 - **Månadsvy:** en tabellrad för varje datum med registrerade händelser, dagsresultat och löpande budgetsaldo. Fasta inkomster och kostnader ingår automatiskt i resultatet, men räknas inte upp i tabellen eller dagdetaljerna. Bläddra mellan månader och fäll ut en dag för att se enbart manuellt registrerade händelser.
 - Beräknat budgetsaldos utveckling, dags-, vecko-, månadsresultat samt enkel 30-dagarsprognos.
 - Återkommande poster får effektiva start- och slutdatum; beloppsändring skapar ny version.
-- Lokal lagring samt import och export av JSON-säkerhetskopior.
+- Firebase som enda budgetlagring, samt manuell import och export av JSON-säkerhetskopior.
 - Mobilvänligt gränssnitt. Ett personligt konto nu, datafält för flera medlemmar senare.
 
-### Viktig skillnad: webbpublicering och datalagring
+### Datalagring
 
-Appen kräver Firebase-inloggning för att visa budgeten. Skyddade Firestore-regler begränsar varje konto till dess egna data. Lokala kopior finns kvar i webbläsaren men ersätter inte JSON-backup. iPhone-hemskärmsappar kan ha separat lagring från Safari. GitHub innehåller inga privata budgetdata.
+Budgetdata finns i den inloggade användarens Firestore-dokument med säkerhetsregler per konto. Alla ändringar skrivs via transaktioner direkt mot servern. GitHub innehåller inga privata budgetdata.
 
 **Beräknat budgetsaldo är inte ett bankkontosaldo.** Regelbundna belopp fördelas jämnt per dag. Faktiska löne- och betalningsdatum modelleras inte. Framtidsprognosen förutsätter inga framtida rörliga köp.
 
