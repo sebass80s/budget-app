@@ -22,11 +22,12 @@
 .month-mobile-hint{display:none!important}
 .month-scroll{max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain}
 .month-scroll:focus-visible{outline:2px solid #76c2b1;outline-offset:-2px}
-.month-table{border-collapse:separate;border-spacing:0;width:100%;min-width:540px;white-space:nowrap;font-size:12px;font-variant-numeric:tabular-nums}
+.month-table{border-collapse:separate;border-spacing:0;width:100%;min-width:500px;white-space:nowrap;font-size:12px;font-variant-numeric:tabular-nums}
 .month-table th,.month-table td{padding:10px 19px;border-bottom:1px solid #edf1f0}
 .month-table thead th{position:sticky;top:0;z-index:1;background:#f5f9f7;color:#657a7d;text-align:left;font-weight:750;font-size:11px}
 .month-table .num{text-align:right}
-.month-table tbody th{padding:0 12px 0 19px;text-align:left;font-weight:650}
+.month-table tbody th{padding:0 7px 0 13px;text-align:left;font-weight:650}
+.month-table thead th:first-child,.month-table tbody .month-data-row th:first-child,.month-table tfoot th:first-child{width:1%;white-space:nowrap}
 .month-data-row.is-today{background:#edfaf4}
 .month-data-row.is-future{background:#fbfcfc}
 .month-data-row.is-before-anchor{color:#a0aeb2}
@@ -34,9 +35,9 @@
 .month-data-row.is-expanded{background:#f0f8f5}
 .month-data-row .total-day{font-weight:800}
 .month-data-row .running-balance{font-weight:750;color:#294044}
-.month-day-button{width:100%;display:flex;justify-content:space-between;align-items:center;gap:16px;background:transparent;border:0;color:inherit;padding:11px 0;text-align:left;font:inherit;font-weight:750}
+.month-day-button{display:inline-flex;justify-content:flex-start;align-items:center;gap:7px;min-height:42px;background:transparent;border:0;color:inherit;padding:8px 0;text-align:left;font:inherit;font-weight:750}
 .month-day-label{display:flex;align-items:center;gap:8px}
-.day-chevron{color:#9baead}
+.day-chevron{color:#78918b;flex:0 0 13px;text-align:center}
 .day-pill{color:#087967;background:#c7efdf;border-radius:5px;font-size:9px;padding:2px 5px;font-weight:800}
 .day-future{color:#899a9a;font-size:9px;font-weight:650}
 .month-details-row td{padding:17px 25px;background:#f7fbf9;white-space:normal;color:#53696e}
@@ -49,4 +50,4 @@
 .month-table tfoot th,.month-table tfoot td{font-weight:850;background:#f3f8f5;border-top:1px solid #dbeae4;border-bottom:0;padding-top:17px;padding-bottom:17px}
 .visually-hidden{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(max-width:960px){.month-summary{gap:10px}.month-kpi{padding:15px}.month-kpi strong{font-size:21px}}
-@media(max-width:760px){.month-view{gap:12px}.month-toolbar{padding:19px 16px}.month-toolbar h2{font-size:21px}.month-picker{width:100%;gap:8px;justify-content:flex-start;flex-wrap:wrap}.month-picker strong{min-width:135px}.month-summary{grid-template-columns:1fr 1fr;gap:9px}.month-kpi{padding:13px}.month-kpi:last-child{grid-column:span 2}.month-kpi strong{font-size:22px}.month-table-intro{padding:14px 13px;gap:11px}.month-mobile-hint{display:inline-flex!important;width:100%;font-size:10px;color:#6b8983}.month-table{min-width:540px}.month-table td,.month-table th{padding-left:13px;padding-right:13px}}
+@media(max-width:760px){.month-view{gap:12px}.month-toolbar{padding:19px 16px}.month-toolbar h2{font-size:21px}.month-picker{width:100%;gap:8px;justify-content:flex-start;flex-wrap:wrap}.month-picker strong{min-width:135px}.month-summary{grid-template-columns:1fr 1fr;gap:9px}.month-kpi{padding:13px}.month-kpi:last-child{grid-column:span 2}.month-kpi strong{font-size:22px}.month-table-intro{padding:14px 13px;gap:11px}.month-mobile-hint{display:inline-flex!important;width:100%;font-size:10px;color:#6b8983}.month-table{min-width:500px}.month-table td,.month-table th{padding-left:13px;padding-right:13px}}

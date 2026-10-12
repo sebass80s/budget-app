@@ -30,3 +30,14 @@ test("income and fixed cost contribute to daily budget while a purchase reduces 
   assert.equal(dailyResultOre(doc,"personal","2026-10-12"),dailyNetOre(doc,"personal","2026-10-12")-12000);
   assert.equal(kronaToOre("120,50"),12050);
 });
+
+test("today's expenses open by default; monthly expansion chevron stays beside date", () => {
+  const month = readFileSync(new URL("../src/components/MonthlyTable.tsx", import.meta.url), "utf8");
+  const styles = readFileSync(new URL("../src/app/month.css", import.meta.url), "utf8");
+  assert.match(page, /useState<Tab>\("today"\)/);
+  const labelIndex = month.indexOf('<span className="month-day-label">');
+  const arrowIndex = month.indexOf('<span className="day-chevron"');
+  assert.ok(arrowIndex >= 0 && labelIndex > arrowIndex, "arrow should precede date text inside the same clickable button");
+  assert.match(styles, /\.month-day-button\{display:inline-flex;justify-content:flex-start/);
+  assert.match(styles, /\.month-table thead th:first-child,\.month-table tbody \.month-data-row th:first-child/);
+});
