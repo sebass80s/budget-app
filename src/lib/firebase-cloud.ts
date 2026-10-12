@@ -16,7 +16,7 @@ function parseWebConfig(value: unknown): WebConfig | null {
   for (const field of ["apiKey", "authDomain", "projectId", "appId"]) {
     if (typeof config[field] !== "string" || !config[field]) throw new Error("Ogiltig Firebase-konfiguration.");
   }
-  return config as WebConfig;
+  return config as unknown as WebConfig;
 }
 
 export async function loadCloudServices(): Promise<CloudServices | null> {
