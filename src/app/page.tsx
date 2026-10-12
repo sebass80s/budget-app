@@ -6,7 +6,7 @@ import { CloudPanel } from "@/components/CloudPanel";
 import { useCloudSync } from "@/hooks/useCloudSync";
 import {
   type BudgetDocument, type Cadence, type Recurring, type Transaction,
-  addDays, createDemoBudget, createEmptyBudget, dailyNetOre, dailyResultOre,
+  addDays, createEmptyBudget, dailyNetOre, dailyResultOre,
   kronaToOre, mondayOnOrBefore, rangeResultOre, replaceRecurringFrom, todayLocal,
   validDocument, virtualBalanceOre,
 } from "@/lib/budget";
@@ -80,6 +80,7 @@ function Trend({ document, workspaceId, today }: { document: BudgetDocument; wor
 
 export default function HomePage() {
   const [document, setDocument] = useState<BudgetDocument | null>(null);
+  const [hydrated, setHydrated] = useState(false);
   const [tab, setTab] = useState<Tab>("overview");
   const [currentDay, setCurrentDay] = useState("2026-10-12");
   const [notice, setNotice] = useState("");
@@ -103,26 +104,25 @@ export default function HomePage() {
     setCurrentDay(today);
     setTxDate(today);
     setRecStart(today);
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (!raw) {
-        setDocument(createDemoBudget(today));
-        return;
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      try {
+        const parsed: unknown = JSON.parse(raw);
+        if (validDocument(parsed) && !parsed.demo) setDocument(parsed);
+        else if (!validDocument(parsed)) {
+          window.localStorage.setItem("budget-app:legacy-unreadable-backup", raw);
+          setNotice("En äldre lokal kopia hade okänt format och har sparats för återställning.");
+        }
+      } catch {
+        // Keep the unparseable original before a new signed-in budget is saved.
+        window.localStorage.setItem("budget-app:legacy-unreadable-backup", raw);
+        setNotice("En äldre lokal budget gick inte att läsa. Originalet har bevarats på enheten.");
       }
-      const parsed: unknown = JSON.parse(raw);
-      if (validDocument(parsed)) {
-        setDocument(parsed);
-      } else {
-        setNotice("Sparad data har ett okänt format. Demo visas tills du återställer en säkerhetskopia.");
-        setDocument(createDemoBudget(today));
-      }
-    } catch {
-      setNotice("Kunde inte läsa sparad data. Demo visas tills du importerar en säkerhetskopia.");
-      setDocument(createDemoBudget(today));
     }
+    setHydrated(true);
   }, []);
   useEffect(() => {
-    if (document) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(document));
+    if (document && !document.demo) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(document));
   }, [document]);
   const cloud = useCloudSync(document, setDocument);
   const workspace = document?.workspaces[0];
@@ -210,8 +210,8 @@ export default function HomePage() {
     if (!window.confirm("Ta bort händelsen?")) return;
     mutate(d => ({ ...d, transactions: d.transactions.filter(t => t.id !== id) }));
   }
-  function clearDemo() {
-    if (!window.confirm(cloud.active ? "Börja om med tom budget även i molnet? Detta kan inte ångras. Exportera en backup först." : "Börja med en helt tom budget? Demouppgifterna tas bort.")) return;
+  function resetBudget() {
+    if (!window.confirm("Börja om med en helt tom budget? Det ersätter även molnbudgeten och kan inte ångras. Exportera en backup först.")) return;
     const empty = createEmptyBudget(currentDay);
     setDocument(empty);
     setOpening("0"); setWorkspaceName("Min ekonomi");
@@ -257,7 +257,21 @@ export default function HomePage() {
     }
   }, [workspace?.id, workspace?.openingBalanceOre, workspace?.name]);
 
-  if (!document || !workspace) return <main className="loading">Laddar din budget …</main>;
+  if (!hydrated || cloud.status === "loading") return <main className="loading">Öppnar Budget App …</main>;
+  // Keep the budget screen private until authentication and cloud connection are ready.
+  if (cloud.status !== "active" && cloud.status !== "saving") {
+    return <main className="auth-screen">
+      <div className="auth-layout">
+        <div className="auth-intro">
+          <div className="brand"><div className="brand-mark">◈</div><div><strong>budget<span>.</span></strong><small>ETT DRAG I TAGET</small></div></div>
+          <h1>Din ekonomi, samlad på ett ställe.</h1>
+          <p>Logga in för att fortsätta med din budget, oavsett vilken enhet du använder.</p>
+        </div>
+        <CloudPanel cloud={cloud} mode="welcome" />
+      </div>
+    </main>;
+  }
+  if (!document || !workspace) return <main className="loading">Hämtar din budget …</main>;
   return (
     <div className="shell">
       <aside className="sidebar">
@@ -286,10 +300,9 @@ export default function HomePage() {
                 tab === "transactions" ? "Registrera det som händer mellan löningarna." :
                 tab === "recurring" ? "Grunden som driver ditt dagliga ekonomiska netto." :
                 "Din data, din kontroll."}</p></div>
-            <div className="top-actions"><span className="privacy-pill">{cloud.active ? "● Molnsynk aktiv" : "● Endast på enheten"}</span>{document.demo && <span className="demo-pill">DEMODATA</span>}</div>
+            <div className="top-actions"><span className="privacy-pill">{cloud.active ? "● Molnsynk aktiv" : "● Synkning pausad"}</span></div>
           </div>}
           {notice && <div className="notice" role="status">{notice}<button type="button" onClick={() => setNotice("")} aria-label="Stäng meddelande">×</button></div>}
-          {document.demo && <div className="demo-notice"><div><strong>Du tittar på en demo.</strong> Alla siffror är påhittade. Börja med en tom budget när du vill lägga in din egen ekonomi.</div><button type="button" onClick={clearDemo} className="button button-outline">Börja med min budget →</button></div>}
           {tab === "overview" && <div className="simple-home">
             <section className="hero-main focused-hero" aria-label="Dagens resultat">
               <div className="hero-overline">DAGENS RESULTAT</div>
@@ -408,7 +421,7 @@ export default function HomePage() {
                 <p className="settings-copy">På iPhone: öppna i Safari, välj Dela och sedan Lägg till på hemskärmen. På Android: använd webbläsarens alternativ Installera app.</p>
                 <p className="form-hint">Appen kan öppnas utan internet efter ett första besök online. Lokal data sparas även utan uppkoppling, men osynkade ändringar slås inte automatiskt ihop mellan enheter. Exportera en backup innan du byter webbläsare eller installerar om.</p>
               </div>
-              <button type="button" className="danger-button" onClick={clearDemo}>Börja om med tom budget</button>
+              <button type="button" className="danger-button" onClick={resetBudget}>Börja om med tom budget</button>
             </section>
             <CloudPanel cloud={cloud} />
           </div>}
