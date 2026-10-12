@@ -54,7 +54,7 @@ export function MonthlyTable({ document, workspaceId, today, onAddTransaction }:
           <strong className={ledger.total.dailyResultOre >= 0 ? "positive" : "negative"}>{signed(ledger.total.dailyResultOre)}</strong>
         </div>
         <div className="month-kpi">
-          <span>Rörliga köp och inkomster</span>
+          <span>Registrerade händelser</span>
           <strong className={ledger.total.variableNetOre >= 0 ? "positive" : "negative"}>{signed(ledger.total.variableNetOre)}</strong>
         </div>
         <div className="month-kpi">
@@ -67,16 +67,14 @@ export function MonthlyTable({ document, workspaceId, today, onAddTransaction }:
           <span><i className="month-dot past" /> Genomförd dag</span>
           <span><i className="month-dot today" /> Idag</span>
           <span><i className="month-dot future" /> Prognos</span>
-          <span className="month-mobile-hint">Svep tabellen åt sidan för fler kolumner →</span>
+          <span className="month-mobile-hint">Tryck på en dag för att se registrerade händelser</span>
         </div>
         <div className="month-scroll" role="region" aria-label={formatMonth(month) + " – budgettabell"} tabIndex={0}>
           <table className="month-table">
             <caption className="visually-hidden">Daglig ekonomisk sammanställning för {formatMonth(month)}. Belopp i kronor.</caption>
             <thead><tr>
               <th scope="col">Datum</th>
-              <th scope="col" className="num">Fasta inkomster</th>
-              <th scope="col" className="num">Fasta utgifter</th>
-              <th scope="col" className="num">Rörligt</th>
+              <th scope="col" className="num">Registrerat</th>
               <th scope="col" className="num">Dagsresultat</th>
               <th scope="col" className="num">Budgetsaldo</th>
             </tr></thead>
@@ -85,7 +83,7 @@ export function MonthlyTable({ document, workspaceId, today, onAddTransaction }:
                 const future = row.date > today;
                 const isToday = row.date === today;
                 const open = expanded === row.date;
-                const detailsCount = row.transactions.length + row.recurring.length;
+                const detailsCount = row.transactions.length;
                 return [
                   <tr key={row.date} className={[
                     "month-data-row", future ? "is-future" : "", isToday ? "is-today" : "",
@@ -103,22 +101,18 @@ export function MonthlyTable({ document, workspaceId, today, onAddTransaction }:
                         <span className="day-chevron" aria-hidden="true">{open ? "⌃" : "⌄"}</span>
                       </button>
                     </th>
-                    <td className="num positive">{row.active ? signed(row.recurringIncomeOre) : "–"}</td>
-                    <td className="num negative">{row.active ? signed(row.recurringExpensesOre) : "–"}</td>
                     <td className={`num ${row.variableNetOre >= 0 ? "positive" : "negative"}`}>{row.active ? signed(row.variableNetOre) : "–"}</td>
                     <td className={`num total-day ${row.dailyResultOre >= 0 ? "positive" : "negative"}`}>{row.active ? signed(row.dailyResultOre) : "–"}</td>
                     <td className="num running-balance">{row.balanceOre === null ? "–" : amount(row.balanceOre)}</td>
                   </tr>,
-                  open && <tr key={row.date + "-details"} className="month-details-row"><td colSpan={6}>
+                  open && <tr key={row.date + "-details"} className="month-details-row"><td colSpan={4}>
                     {!row.active ? <p>Budgeten börjar efter detta datum.</p> : <>
                       <div className="month-details-header"><strong>{row.date} · {detailsCount === 0 ? "Inga poster" : `${detailsCount} poster`}</strong>
                         <button type="button" className="month-add" onClick={() => onAddTransaction(row.date)}>+ Registrera händelse denna dag</button>
                       </div>
-                      {row.recurring.map(({ item, dailyOre }) =>
-                        <div className="month-detail" key={item.id}><span>{item.label} <small>fast, fördelad per dag</small></span><strong>{signed(dailyOre)}</strong></div>)}
                       {row.transactions.map(t =>
                         <div className="month-detail" key={t.id}><span>{t.label} <small>registrerad händelse</small></span><strong>{signed(t.amountOre)}</strong></div>)}
-                      {detailsCount === 0 && <p>Inga inkomster eller utgifter för dagen.</p>}
+                      {detailsCount === 0 && <p>Inga registrerade händelser denna dag.</p>}
                     </>}
                   </td></tr>
                 ];
@@ -126,8 +120,6 @@ export function MonthlyTable({ document, workspaceId, today, onAddTransaction }:
             </tbody>
             <tfoot><tr>
               <th scope="row">Summa</th>
-              <td className="num positive">{signed(ledger.total.recurringIncomeOre)}</td>
-              <td className="num negative">{signed(ledger.total.recurringExpensesOre)}</td>
               <td className={`num ${ledger.total.variableNetOre >= 0 ? "positive" : "negative"}`}>{signed(ledger.total.variableNetOre)}</td>
               <td className={`num ${ledger.total.dailyResultOre >= 0 ? "positive" : "negative"}`}>{signed(ledger.total.dailyResultOre)}</td>
               <td className="num">{monthIsBeforeStart ? "–" : amount(ledger.total.balanceOre ?? 0)}</td>
@@ -139,7 +131,7 @@ export function MonthlyTable({ document, workspaceId, today, onAddTransaction }:
         <span>{isForecast
           ? "Framtida dagar är prognoser baserade på fasta poster och redan registrerade händelser. Ytterligare köp ingår inte."
           : "Budgetsaldo är ett beräknat saldo, inte ditt bankkontosaldo."}
-          {" "}Klicka på en dag för att se vilka poster som ingår.</span>
+          {" "}Fasta inkomster och kostnader ingår i dagsresultatet, men visas inte separat. Klicka på en dag för att se registrerade händelser.</span>
       </div>
     </section>
   );
