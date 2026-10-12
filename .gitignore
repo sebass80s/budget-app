@@ -21,3 +21,6 @@ budget-app-backup-*.json
 
 # Deterministically generated PWA icons
 public/icons/*.png
+
+# Firebase public web configuration generated only during builds
+public/firebase-config.json

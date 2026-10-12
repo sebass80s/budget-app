@@ -33,6 +33,12 @@ https://sebass80s.github.io/budget-app/ på din telefon.
 
 PWA-bygget genererar PNG-appikoner utan extra dependencies och ett versionshanterat service worker-skript med cachade statiska resurser. Manifest, Pages-scope, Apple-ikon och offline-fallback testas vid varje produktionsbygge.
 
+## Firebase (valfritt molnstöd)
+
+Molnlagringen är **avstängd tills Firebase är konfigurerat**. Den fungerar utan någon ChatGPT-plugin. Appens gamla lokala dataformat ändras inte.
+
+Se [Firebase installationsguide](docs/FIREBASE_SETUP.md) för att aktivera e-postinloggning, Firestore-regler och en enda GitHub Actions-variabel. När det är klart kan du ansluta under **Inställningar → Molnlagring**. Första överföringen är alltid ett aktivt val; ingen befintlig budget skrivs över vid inloggning. Efter anslutning sparas nya ändringar online med revisionskontroll. Offline-konflikter kräver manuell återställning och säkerhetskopia.
+
 ## Vad finns?
 
 - **Startsidan visar bara dagens resultat och ett snabbformulär för löpande utgifter.** Belopp krävs, beskrivning är valfri och utgiften bokförs på dagens datum. Dagens resultat inkluderar dagsnettot och registrerade händelser.
@@ -46,7 +52,7 @@ PWA-bygget genererar PNG-appikoner utan extra dependencies och ett versionshante
 
 ### Viktig skillnad: webbpublicering och datalagring
 
-**Webbappen är online, men ekonomiska uppgifter sparas för närvarande bara i webbläsaren där du använder appen.** Safari på iPhone och Chrome på en annan dator har alltså separata budgetar. Det finns ännu ingen inloggning eller synkronisering mellan enheter. Appdata lagras okrypterat i webbläsarens `localStorage`, inte i GitHub eller GitHub Pages. Undvik riktiga personuppgifter på delade enheter, och exportera backup regelbundet.
+**Utan ansluten Firebase** sparas uppgifter bara i webbläsaren. Med Firebase-konfiguration, aktiverad e-postinloggning, skyddade Firestore-regler och en aktiv användarsession kan budgeten lagras online och användas från flera enheter. Lokala kopior finns kvar i webbläsaren och ersätter inte JSON-backup. iPhone-hemskärmsappar kan ha separat lagring från Safari. GitHub innehåller inga privata budgetdata.
 
 **Beräknat budgetsaldo är inte ett bankkontosaldo.** Regelbundna belopp fördelas jämnt per dag. Faktiska löne- och betalningsdatum modelleras inte. Framtidsprognosen förutsätter inga framtida rörliga köp.
 
