@@ -51,7 +51,7 @@ Se [Firebase installationsguide](docs/FIREBASE_SETUP.md) för inställningar.
 - **Dagens utgifter:** Dagens lista och totalsumma. Det går att ta bort en felregistrerad utgift.
 - **Inställningar:** Lägg till och hantera **inkomster** och **fasta kostnader** (nya poster anges per månad). Tidigare sparade intervall behålls. Fler inställningar innehåller startsaldo, JSON-säkerhetskopia, konto och avancerade åtgärder.
 
-En tydlig **+ Ny utgift**-knapp och den klickbara logotypen tar alltid tillbaka användaren till den snabba registreringen. Budgetdata lagras endast i Firebase.
+En tydlig **+ Ny utgift**-knapp och den klickbara logotypen tar alltid tillbaka användaren till den snabba registreringen. Ovanför formuläret visas **Dagens resultat**, beräknat från dagens andel av fasta inkomster och kostnader samt registrerade händelser. Värdet uppdateras när Firebase har bekräftat en ändring. Budgetdata lagras endast i Firebase.
 
 ### Datalagring
 
