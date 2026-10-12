@@ -29,15 +29,15 @@ https://sebass80s.github.io/budget-app/ på din telefon.
 - Öppna därefter Budget från den nya appikonen. Den startar i eget fönster.
 - Efter första online-besöket lagras själva webbappens kod för ett grundläggande **offline-läge**. Vid nästa uppkoppling kan en uppdatering laddas.
 
-**Viktigt före installation:** Uppgifter ligger fortsatt i varje webbläsares lokala lagring, inte på en server. iOS kan lagra hemskärmsappar separat från Safari. Om du redan lagt in riktiga uppgifter i Safari, exportera en backup under Inställningar och importera den vid behov i den installerade appen. Offline-läget synkroniserar inte ekonomiska data och ersätter inte säkerhetskopior. Ingen notisfunktion eller bankintegration ingår.
+**Viktigt före installation:** Budgeten synkas via det inloggade Firebase-kontot när internet finns, med en lokal kopia per enhet. iOS kan lagra hemskärmsappar separat från Safari. Offlineändringar kan inte sammanfogas automatiskt; exportera en backup före större ändringar eller ominstallation. Ingen notisfunktion eller bankintegration ingår.
 
 PWA-bygget genererar PNG-appikoner utan extra dependencies och ett versionshanterat service worker-skript med cachade statiska resurser. Manifest, Pages-scope, Apple-ikon och offline-fallback testas vid varje produktionsbygge.
 
-## Firebase (valfritt molnstöd)
+## Firebase och inloggning
 
-Molnlagringen är **avstängd tills Firebase är konfigurerat**. Den fungerar utan någon ChatGPT-plugin. Appens gamla lokala dataformat ändras inte.
+Appen öppnar på **inloggningsskärmen**, utan demoversion. Nya konton får automatiskt en tom budget i Firestore; befintliga konton hämtar sin molnbudget när det är säkert. Om enheten redan innehåller en annan, osynkroniserad lokal budget krävs ett aktivt val före överföring eller ersättning. Den lokala kopian skyddas, och ingen JSON-fil laddas ned automatiskt i PWA:n.
 
-Se [Firebase installationsguide](docs/FIREBASE_SETUP.md) för att aktivera e-postinloggning, Firestore-regler och en enda GitHub Actions-variabel. När det är klart kan du ansluta under **Inställningar → Molnlagring**. Första överföringen är alltid ett aktivt val; ingen befintlig budget skrivs över vid inloggning. Vid molnhämtning behålls en lokal säkerhetskopia som kan återställas i appen utan automatisk JSON-nedladdning. Efter anslutning sparas nya ändringar online med revisionskontroll. Offline-konflikter kräver manuell återställning och säkerhetskopia.
+Se [Firebase installationsguide](docs/FIREBASE_SETUP.md) för projektets inställningar. Synkronisering online har revisionskontroll. Offline-konflikter behöver hanteras manuellt; export av JSON-backup finns kvar i Inställningar.
 
 ## Vad finns?
 
@@ -52,7 +52,7 @@ Se [Firebase installationsguide](docs/FIREBASE_SETUP.md) för att aktivera e-pos
 
 ### Viktig skillnad: webbpublicering och datalagring
 
-**Utan ansluten Firebase** sparas uppgifter bara i webbläsaren. Med Firebase-konfiguration, aktiverad e-postinloggning, skyddade Firestore-regler och en aktiv användarsession kan budgeten lagras online och användas från flera enheter. Lokala kopior finns kvar i webbläsaren och ersätter inte JSON-backup. iPhone-hemskärmsappar kan ha separat lagring från Safari. GitHub innehåller inga privata budgetdata.
+Appen kräver Firebase-inloggning för att visa budgeten. Skyddade Firestore-regler begränsar varje konto till dess egna data. Lokala kopior finns kvar i webbläsaren men ersätter inte JSON-backup. iPhone-hemskärmsappar kan ha separat lagring från Safari. GitHub innehåller inga privata budgetdata.
 
 **Beräknat budgetsaldo är inte ett bankkontosaldo.** Regelbundna belopp fördelas jämnt per dag. Faktiska löne- och betalningsdatum modelleras inte. Framtidsprognosen förutsätter inga framtida rörliga köp.
 

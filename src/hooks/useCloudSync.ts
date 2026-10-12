@@ -1,13 +1,14 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { type BudgetDocument, validDocument } from "@/lib/budget";
+import { type BudgetDocument, createEmptyBudget, todayLocal, validDocument } from "@/lib/budget";
+import { chooseCloudStartup } from "@/lib/cloud-startup";
 import { localCloudBackupKey, preserveLocalCloudBackup, readLocalCloudBackup } from "@/lib/cloud-local-backup";
 import {
   type CloudServices, type CloudSnapshot, loadCloudServices, watchAuth,
   logIn, register, logOut, readCloud, writeCloud,
 } from "@/lib/firebase-cloud";
 
-type Status = "loading" | "disabled" | "signedOut" | "ready" | "active" | "saving" | "blocked" | "error";
+type Status = "loading" | "disabled" | "signedOut" | "ready" | "active" | "saving" | "offline" | "blocked" | "error";
 const baseKey = (uid: string) => "budget-app:cloud-last-synced:" + uid;
 const stringify = (budget: BudgetDocument) => JSON.stringify(budget);
 
@@ -51,22 +52,51 @@ export function useCloudSync(
           setExists(!!cloud);
           const local = budgetRef.current;
           const previous = window.localStorage.getItem(baseKey(user.uid));
-          // Auto-reconnect only if local data is exactly the last successful cloud save.
-          if (cloud && local && previous === stringify(local)) {
+          const startup = chooseCloudStartup(local, cloud?.budget ?? null, previous);
+          if (startup === "load-cloud" && cloud) {
             revision.current = cloud.revision;
             lastSaved.current = stringify(cloud.budget);
             window.localStorage.setItem(baseKey(user.uid),lastSaved.current);
+            window.localStorage.setItem("budget-app:local-owner-uid", user.uid);
             enabled.current = true;
             replaceBudget(cloud.budget);
             setStatus("active");
+            setMessage("Molnsynkronisering aktiv.");
+          } else if (startup === "create-cloud") {
+            // New account: create a real, empty budget. Demo data is never shown.
+            const blank = createEmptyBudget(todayLocal());
+            const nextRevision = await writeCloud(s, user.uid, blank, 0);
+            if (stopped || uid.current !== user.uid) return;
+            revision.current = nextRevision;
+            lastSaved.current = stringify(blank);
+            window.localStorage.setItem(baseKey(user.uid), lastSaved.current);
+            window.localStorage.setItem("budget-app:local-owner-uid", user.uid);
+            enabled.current = true;
+            replaceBudget(blank);
+            setExists(true);
+            setStatus("active");
+            setMessage("Din tomma budget är redo och sparas i molnet.");
           } else {
+            // Protect unsynced legacy local data: never silently upload/replace.
             setStatus("ready");
             setMessage(cloud
-              ? "Molnkopian finns. Hämta den när du vill ansluta."
-              : "Ditt konto är redo. Du kan lägga din lokala budget i molnet.");
+              ? "Det finns både en molnbudget och en annan lokal budget på den här enheten. Välj Hämta molnbudget för att fortsätta. Den lokala kopian bevaras."
+              : "Du har en äldre lokal budget på den här enheten. Välj Lägg min budget i molnet för att koppla den till kontot.");
           }
         } catch (error) {
-          if (!stopped) { setStatus("error"); setMessage(error instanceof Error ? error.message : "Molnet kunde inte läsas."); }
+          if (stopped || uid.current !== user.uid) return;
+          const local = budgetRef.current;
+          const previous = window.localStorage.getItem(baseKey(user.uid));
+          const ownerMatches = window.localStorage.getItem("budget-app:local-owner-uid") === user.uid;
+          if (!navigator.onLine && local && !local.demo &&
+              (ownerMatches || previous === stringify(local))) {
+            enabled.current = false;
+            setStatus("offline");
+            setMessage("Du är offline. Din budget visas från enheten och ändringar sparas lokalt. Anslut och ladda om när du vill hämta molnets senaste version. Offlineändringar sammanfogas inte automatiskt.");
+          } else {
+            setStatus("error");
+            setMessage(error instanceof Error ? error.message : "Molnet kunde inte läsas.");
+          }
         }
       });
     }).catch(error => {
@@ -91,6 +121,7 @@ export function useCloudSync(
         revision.current = nextRevision;
         lastSaved.current = serialized;
         window.localStorage.setItem(baseKey(account), serialized);
+        window.localStorage.setItem("budget-app:local-owner-uid", account);
         setStatus("active");
         setMessage("Molnbudgeten är sparad.");
       } catch (error) {
@@ -141,6 +172,7 @@ export function useCloudSync(
         revision.current = cloud.revision;
         lastSaved.current = stringify(cloud.budget);
         window.localStorage.setItem(baseKey(account),lastSaved.current);
+        window.localStorage.setItem("budget-app:local-owner-uid", account);
         enabled.current = true;
         replaceBudget(cloud.budget);
         setExists(true); setStatus("active");
@@ -157,6 +189,7 @@ export function useCloudSync(
         revision.current = next;
         lastSaved.current = stringify(budget);
         window.localStorage.setItem(baseKey(account),lastSaved.current);
+        window.localStorage.setItem("budget-app:local-owner-uid", account);
         enabled.current = true;
         setExists(true); setStatus("active");
         setMessage("Budgeten har sparats i molnet och synkronisering är aktiv.");
@@ -188,6 +221,7 @@ export function useCloudSync(
         revision.current = next;
         lastSaved.current = serial;
         window.localStorage.setItem(baseKey(account),serial);
+        window.localStorage.setItem("budget-app:local-owner-uid", account);
       }
       setStatus("active");
       setMessage("Synkronisering återupptagen.");

@@ -1,5 +1,5 @@
 "use client";
-import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
+import { initializeApp, getApps, type FirebaseApp, type FirebaseOptions } from "firebase/app";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, type Auth, type User } from "firebase/auth";
 import { doc, getDocFromServer, getFirestore, runTransaction, serverTimestamp, type Firestore } from "firebase/firestore";
 import { type BudgetDocument, validDocument } from "@/lib/budget";
@@ -7,16 +7,36 @@ import { type BudgetDocument, validDocument } from "@/lib/budget";
 export type CloudServices = { app: FirebaseApp; auth: Auth; db: Firestore };
 export type CloudSnapshot = { revision: number; budget: BudgetDocument };
 
+type WebConfig = FirebaseOptions & { enabled: true };
+const publicConfigKey = "budget-app:firebase-public-config";
+function parseWebConfig(value: unknown): WebConfig | null {
+  if (!value || typeof value !== "object") throw new Error("Ogiltig Firebase-konfiguration.");
+  const config = value as Record<string, unknown>;
+  if (config.enabled !== true) return null;
+  for (const field of ["apiKey", "authDomain", "projectId", "appId"]) {
+    if (typeof config[field] !== "string" || !config[field]) throw new Error("Ogiltig Firebase-konfiguration.");
+  }
+  return config as unknown as WebConfig;
+}
+
 export async function loadCloudServices(): Promise<CloudServices | null> {
   const manifest = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
   if (!manifest) throw new Error("Appmanifest saknas.");
   const url = new URL("firebase-config.json", manifest.href);
-  const response = await fetch(url.href, { cache: "no-store" });
-  if (!response.ok) throw new Error("Firebase-konfigurationen gick inte att hämta.");
-  const config = await response.json();
-  if (config.enabled !== true) return null;
-  for (const field of ["apiKey","authDomain","projectId","appId"]) {
-    if (typeof config[field] !== "string" || !config[field]) throw new Error("Ogiltig Firebase-konfiguration.");
+  let config: WebConfig | null;
+  try {
+    const response = await fetch(url.href, { cache: "no-store" });
+    if (!response.ok) throw new Error("Firebase-konfigurationen gick inte att hämta.");
+    config = parseWebConfig(await response.json());
+    if (!config) return null;
+    // The public web config may be cached locally for authenticated offline PWA use.
+    window.localStorage.setItem(publicConfigKey, JSON.stringify(config));
+  } catch (error) {
+    if (navigator.onLine) throw error;
+    const cached = window.localStorage.getItem(publicConfigKey);
+    if (!cached) throw error;
+    config = parseWebConfig(JSON.parse(cached));
+    if (!config) throw error;
   }
   const name = "budget-app-cloud";
   const app = getApps().find(item => item.name === name) ?? initializeApp(config, name);
