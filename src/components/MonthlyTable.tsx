@@ -19,12 +19,11 @@ type Props = {
   document: BudgetDocument;
   workspaceId: string;
   today: string;
-  onAddTransaction: (date: string) => void;
   onEditTransaction: (transaction: Transaction, changes: ExpenseChange) => Promise<boolean>;
   saving: boolean;
 };
 
-export function MonthlyTable({ document, workspaceId, today, onAddTransaction, onEditTransaction, saving }: Props) {
+export function MonthlyTable({ document, workspaceId, today, onEditTransaction, saving }: Props) {
   const [month, setMonth] = useState(() => today.slice(0, 7));
   const [expanded, setExpanded] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -94,7 +93,6 @@ export function MonthlyTable({ document, workspaceId, today, onAddTransaction, o
                   open && <tr key={row.date + "-details"} className="month-details-row"><td colSpan={4}>
                     {!row.active ? <p>Budgeten börjar efter detta datum.</p> : <>
                       <div className="month-details-header"><strong>{row.date} · {detailsCount === 0 ? "Inga poster" : `${detailsCount} poster`}</strong>
-                        <button type="button" className="month-add" onClick={() => onAddTransaction(row.date)}>+ Lägg till utgift den här dagen</button>
                       </div>
                       {row.transactions.map(t =>
                         <div className="month-expense-item" key={t.id}>
@@ -124,12 +122,6 @@ export function MonthlyTable({ document, workspaceId, today, onAddTransaction, o
             </tr></tfoot>
           </table>
         </div>
-      </div>
-      <div className="bottom-hint"><span>ⓘ</span>
-        <span>{isForecast
-          ? "Framtida dagar är prognoser baserade på fasta poster och redan registrerade händelser. Ytterligare köp ingår inte."
-          : "Budgetsaldo är ett beräknat saldo, inte ditt bankkontosaldo."}
-          {" "}Fasta inkomster och kostnader ingår i dagsresultatet, men visas inte separat. Klicka på en dag för att se registrerade händelser.</span>
       </div>
     </section>
   );

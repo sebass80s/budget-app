@@ -411,7 +411,7 @@ export default function HomePage() {
         </div>}
 
         {tab === "monthly" && <MonthlyTable document={document} workspaceId={workspaceId} today={today}
-          onAddTransaction={date => newExpense(date)} onEditTransaction={saveExpenseEdit}
+          onEditTransaction={saveExpenseEdit}
           saving={cloud.status === "saving"} />}
 
         {tab === "settings" && <div className="settings-stack">
