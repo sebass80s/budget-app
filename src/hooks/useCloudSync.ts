@@ -114,7 +114,10 @@ export function useCloudSync(
       if (create) await register(services.current,address,password);
       else await logIn(services.current,address,password);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Inloggningen misslyckades.");
+      const detail = error instanceof Error ? error.message : "";
+      setMessage(/api-key|invalid-api-key/i.test(detail)
+        ? "Firebase-nyckeln godkänns inte. Kontrollera FIREBASE_CONFIG_JSON på GitHub och publicera webbappen igen."
+        : detail || "Inloggningen misslyckades.");
     }
   }
   async function signOut() {
