@@ -3,6 +3,7 @@ import { initializeApp, getApps, type FirebaseApp, type FirebaseOptions } from "
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, type Auth, type User } from "firebase/auth";
 import { doc, getDocFromServer, getFirestore, onSnapshot, runTransaction, serverTimestamp, type Firestore } from "firebase/firestore";
 import { type BudgetDocument, validDocument } from "@/lib/budget";
+import { prepareCloudChange } from "@/lib/cloud-updates";
 
 export type CloudServices = { app: FirebaseApp; auth: Auth; db: Firestore };
 export type CloudSnapshot = { revision: number; budget: BudgetDocument };
@@ -49,19 +50,6 @@ function snapshotToBudget(data: Record<string, unknown>): CloudSnapshot {
   const parsed: unknown = JSON.parse(data.payload);
   if (!validDocument(parsed) || parsed.demo) throw new Error("Molnkopian har ett ogiltigt budgetformat.");
   return { revision: data.revision as number, budget: parsed };
-}
-
-export function prepareCloudChange(
-  previous: BudgetDocument, change: (budget: BudgetDocument) => BudgetDocument,
-): BudgetDocument {
-  // Keep the original snapshot immutable. Firestore can retry a transaction.
-  const draft = JSON.parse(JSON.stringify(previous)) as BudgetDocument;
-  const updated = change(draft);
-  if (!validDocument(updated) || updated.demo) throw new Error("Ogiltiga budgetdata. Inget sparades.");
-  if (JSON.stringify(updated).length > 790000) {
-    throw new Error("Budgeten är för stor för molnlagringen.");
-  }
-  return updated;
 }
 
 export async function readCloud(s: CloudServices, uid: string): Promise<CloudSnapshot | null> {

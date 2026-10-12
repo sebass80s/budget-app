@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createDemoBudget, createEmptyBudget } from "../src/lib/budget.ts";
-import { prepareCloudChange } from "../src/lib/firebase-cloud.ts";
+import { prepareCloudChange } from "../src/lib/cloud-updates.ts";
 
 test("Firebase change adds an expense without mutating its input snapshot", () => {
   const before = createEmptyBudget("2026-10-12");
