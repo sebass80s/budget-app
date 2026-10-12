@@ -67,7 +67,7 @@ export function MonthlyTable({ document, workspaceId, today, onAddTransaction }:
           <span><i className="month-dot past" /> Genomförd dag</span>
           <span><i className="month-dot today" /> Idag</span>
           <span><i className="month-dot future" /> Prognos</span>
-          <span className="month-mobile-hint">Tryck på en dag för att se registrerade händelser</span>
+          <span className="month-mobile-hint">Tryck på datumet för detaljer. Svep tabellen i sidled för fler kolumner.</span>
         </div>
         <div className="month-scroll" role="region" aria-label={formatMonth(month) + " – budgettabell"} tabIndex={0}>
           <table className="month-table">
