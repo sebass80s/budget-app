@@ -42,6 +42,14 @@
 - Public repository contains only sample data. Environment variables are ignored.
 - Before adding real multiuser sync: backend authorization, row-level access policies, tenant isolation, tested migrations, encrypted transport, and server-side backups are required.
 
+## Optional Firebase integration
+- Public Firebase Web SDK configuration is injected by the GitHub Actions repo variable `FIREBASE_CONFIG_JSON` and generated as a public static file during export. No service-account/admin secrets may enter GitHub Pages.
+- Email/password Firebase Auth identifies user. Firestore rules under `users/{uid}/budgets/main` enforce per-user access and monotonically increasing document revisions.
+- The MVP stores a serialized, versioned `BudgetDocument` as one Firestore document, limited to 790 KB. This is a bridge, not the intended final relational ownership model.
+- No automatic local-to-cloud migration. First cloud connection explicitly imports or uploads a budget. A JSON download is triggered before a remote budget replaces local contents.
+- Signed-in autosaves are online-only, serialized and protected by optimistic revision checks. Write conflicts halt uploads and require deliberate recovery. Browser storage remains a local fallback; offline changes are not silently merged.
+- Production Firebase project remains unconfigured until owner enables Firebase Authentication, Firestore and deploys the restrictive `firestore.rules`. GitHub CI does not test remote rules.
+
 ## Future
 1. Versioned persistence backend and authenticated personal workspace
 2. Actual account balances and bank reconciliation in a **separate ledger**

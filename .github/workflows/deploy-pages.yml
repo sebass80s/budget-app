@@ -30,6 +30,7 @@ jobs:
       - name: Run tests, type checking and production export
         env:
           GITHUB_PAGES: 'true'
+          FIREBASE_CONFIG_JSON: ${{ vars.FIREBASE_CONFIG_JSON }}
         run: npm run verify
       - name: Prepare GitHub Pages bundle
         run: |

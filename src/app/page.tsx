@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MonthlyTable } from "@/components/MonthlyTable";
+import { CloudPanel } from "@/components/CloudPanel";
+import { useCloudSync } from "@/hooks/useCloudSync";
 import {
   type BudgetDocument, type Cadence, type Recurring, type Transaction,
   addDays, createDemoBudget, createEmptyBudget, dailyNetOre, dailyResultOre,
@@ -122,6 +124,7 @@ export default function HomePage() {
   useEffect(() => {
     if (document) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(document));
   }, [document]);
+  const cloud = useCloudSync(document, setDocument);
   const workspace = document?.workspaces[0];
   const workspaceId = workspace?.id ?? "personal";
   const currentBalance = document ? virtualBalanceOre(document, workspaceId, currentDay) : 0;
@@ -208,7 +211,7 @@ export default function HomePage() {
     mutate(d => ({ ...d, transactions: d.transactions.filter(t => t.id !== id) }));
   }
   function clearDemo() {
-    if (!window.confirm("Börja med en helt tom budget? Demouppgifterna tas bort.")) return;
+    if (!window.confirm(cloud.active ? "Börja om med tom budget även i molnet? Detta kan inte ångras. Exportera en backup först." : "Börja med en helt tom budget? Demouppgifterna tas bort.")) return;
     const empty = createEmptyBudget(currentDay);
     setDocument(empty);
     setOpening("0"); setWorkspaceName("Min ekonomi");
@@ -229,7 +232,7 @@ export default function HomePage() {
     try {
       const parsed: unknown = JSON.parse(await file.text());
       if (!validDocument(parsed)) throw new Error("Ogiltigt backupformat");
-      if (!window.confirm("Ersätta den nuvarande budgeten med säkerhetskopian?")) return;
+      if (!window.confirm(cloud.active ? "Ersätta den nuvarande budgeten och uppdatera molnkopian med säkerhetskopian?" : "Ersätta den nuvarande budgeten med säkerhetskopian?")) return;
       setDocument(parsed);
       setNotice("Säkerhetskopian har återställts.");
     } catch { setNotice("Filen är inte en giltig Budget App-säkerhetskopia."); }
@@ -266,10 +269,10 @@ export default function HomePage() {
             <span className="nav-symbol">{item.icon}</span>{item.label}
           </button>)}
         </nav>
-        <div className="sidebar-bottom"><div className="sidebar-avatar">J</div><div><strong>Personlig budget</strong><small>Privat på den här enheten</small></div></div>
+        <div className="sidebar-bottom"><div className="sidebar-avatar">J</div><div><strong>Personlig budget</strong><small>{cloud.active ? "Molnsynkronisering aktiv" : "Lokal budget"}</small></div></div>
       </aside>
       <div className="main-shell">
-        <header className="mobile-head"><div className="brand"><div className="brand-mark">◈</div><strong>budget<span>.</span></strong></div><span className="mobile-lock">⌁ Lokal data</span></header>
+        <header className="mobile-head"><div className="brand"><div className="brand-mark">◈</div><strong>budget<span>.</span></strong></div><span className="mobile-lock">{cloud.active ? "☁ Molnansluten" : "⌁ Lokal data"}</span></header>
         <nav className="mobile-nav" aria-label="Huvudmeny">
           {nav.map(item => <button type="button" key={item.id} onClick={() => { setTab(item.id); setNotice(""); }}
             className={tab === item.id ? "mobile-nav-item selected" : "mobile-nav-item"}>{item.label}</button>)}
@@ -283,7 +286,7 @@ export default function HomePage() {
                 tab === "transactions" ? "Registrera det som händer mellan löningarna." :
                 tab === "recurring" ? "Grunden som driver ditt dagliga ekonomiska netto." :
                 "Din data, din kontroll."}</p></div>
-            <div className="top-actions"><span className="privacy-pill">● Endast på enheten</span>{document.demo && <span className="demo-pill">DEMODATA</span>}</div>
+            <div className="top-actions"><span className="privacy-pill">{cloud.active ? "● Molnsynk aktiv" : "● Endast på enheten"}</span>{document.demo && <span className="demo-pill">DEMODATA</span>}</div>
           </div>}
           {notice && <div className="notice" role="status">{notice}<button type="button" onClick={() => setNotice("")} aria-label="Stäng meddelande">×</button></div>}
           {document.demo && <div className="demo-notice"><div><strong>Du tittar på en demo.</strong> Alla siffror är påhittade. Börja med en tom budget när du vill lägga in din egen ekonomi.</div><button type="button" onClick={clearDemo} className="button button-outline">Börja med min budget →</button></div>}
@@ -393,8 +396,8 @@ export default function HomePage() {
                 <button className="button button-primary" type="submit">Spara inställningar →</button>
               </form>
             </section>
-            <section className="panel form-panel"><div className="mini-caption">ENDAST PÅ DIN ENHET</div><h2>Data och säkerhetskopior</h2>
-              <p className="settings-copy">Just nu sparas allt lokalt i webbläsaren. Ingen information synkroniseras mellan enheter eller skickas till GitHub.</p>
+            <section className="panel form-panel"><div className="mini-caption">SÄKERHETSKOPIOR</div><h2>Data och säkerhetskopior</h2>
+              <p className="settings-copy">{cloud.active ? "Budgeten sparas i molnet när uppkoppling finns, och en lokal kopia behålls på enheten." : "Budgeten sparas lokalt tills du anslutit molnlagring. Ingen information skickas till GitHub."}</p>
               <div className="settings-actions"><button type="button" className="button button-secondary" onClick={exportBackup}>↓ Exportera JSON-backup</button>
                 <button type="button" className="button button-outline" onClick={() => fileRef.current?.click()}>↑ Importera backup</button>
                 <input ref={fileRef} type="file" accept=".json,application/json" className="hidden-file" onChange={importBackup} /></div>
@@ -403,10 +406,11 @@ export default function HomePage() {
                 <div className="mini-caption">INSTALLERA APPEN</div>
                 <h2>Budget på hemskärmen</h2>
                 <p className="settings-copy">På iPhone: öppna i Safari, välj Dela och sedan Lägg till på hemskärmen. På Android: använd webbläsarens alternativ Installera app.</p>
-                <p className="form-hint">Appen kan öppnas utan internet efter ett första besök online. Uppgifterna sparas fortfarande bara på den här enheten, inte i molnet. Exportera en backup innan du byter webbläsare eller installerar om.</p>
+                <p className="form-hint">Appen kan öppnas utan internet efter ett första besök online. Lokal data sparas även utan uppkoppling, men osynkade ändringar slås inte automatiskt ihop mellan enheter. Exportera en backup innan du byter webbläsare eller installerar om.</p>
               </div>
               <button type="button" className="danger-button" onClick={clearDemo}>Börja om med tom budget</button>
             </section>
+            <CloudPanel cloud={cloud} />
           </div>}
         </main>
       </div>
