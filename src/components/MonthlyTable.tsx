@@ -108,7 +108,7 @@ export function MonthlyTable({ document, workspaceId, today, onAddTransaction }:
                   open && <tr key={row.date + "-details"} className="month-details-row"><td colSpan={4}>
                     {!row.active ? <p>Budgeten börjar efter detta datum.</p> : <>
                       <div className="month-details-header"><strong>{row.date} · {detailsCount === 0 ? "Inga poster" : `${detailsCount} poster`}</strong>
-                        <button type="button" className="month-add" onClick={() => onAddTransaction(row.date)}>+ Registrera händelse denna dag</button>
+                        <button type="button" className="month-add" onClick={() => onAddTransaction(row.date)}>+ Lägg till utgift den här dagen</button>
                       </div>
                       {row.transactions.map(t =>
                         <div className="month-detail" key={t.id}><span>{t.label} <small>registrerad händelse</small></span><strong>{signed(t.amountOre)}</strong></div>)}

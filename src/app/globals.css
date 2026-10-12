@@ -164,3 +164,54 @@ h2{font-size:18px;letter-spacing:-.5px;line-height:1.3;margin:6px 0 0}
 .cloud-welcome .form .button{width:100%}
 .cloud-welcome .button{margin:5px 8px 0 0}
 @media(max-width:760px){.auth-screen{padding:27px 17px;background:linear-gradient(180deg,#11282c 0%,#183d3c 37%,#f6f8f7 37%,#f6f8f7 100%)}.auth-layout{display:block;max-width:490px}.auth-intro{padding:10px 8px 24px}.auth-intro h1{font-size:31px;margin:25px 0 10px}.auth-intro p{font-size:13px;margin-bottom:0}.cloud-welcome{padding:24px}}
+
+
+/* Simplified expense-first experience. Three navigation destinations plus a persistent new-expense action. */
+.brand-home{border:0;background:transparent;text-align:left;color:inherit;cursor:pointer;width:100%}
+.brand-home:hover{opacity:.9}
+.menu-expense-action{width:calc(100% - 20px);margin:36px 10px 0;padding:14px 12px;border:0;border-radius:12px;background:#aeeacb;color:#10342d;font-weight:800;font-size:14px}
+.menu-expense-action.is-active{background:#c6f9bd}
+.sidebar-caption{margin-top:27px}
+.mobile-expense-action{border:0;border-radius:9px;padding:9px 12px;background:#c6f9bd;color:#11282c;font-weight:800;font-size:12px}
+.simple-home{max-width:560px;margin:0 auto;gap:15px}
+.quick-expense-panel{padding:29px 30px}
+.expense-heading{font-size:clamp(27px,4vw,33px);margin:7px 0 22px;letter-spacing:-.7px}
+.quick-expense-form{gap:16px}
+.quick-expense-form input{min-height:48px}
+.quick-expense-form .expense-date-label{color:#667b7e;font-size:12px}
+.expense-save-hint{color:#87989a;font-size:11px;text-align:center;margin:12px 0 0}
+.today-preview{width:100%;border:1px solid #dce7e4;border-radius:15px;background:#fff;padding:18px 21px;display:flex;align-items:center;justify-content:space-between;text-align:left;gap:12px;color:#203d3b}
+.today-preview strong{font-size:17px}
+.today-preview strong span{color:#09896f;margin-left:10px}
+.today-preview small{display:block;color:#91a1a3;font-size:11px;margin-top:4px}
+.daily-expenses{max-width:760px;display:grid;gap:16px}
+.daily-summary{display:flex;justify-content:space-between;align-items:center;padding:24px;gap:20px}
+.daily-summary h2{margin-top:6px}
+.daily-summary>strong{font-size:clamp(24px,3vw,35px);letter-spacing:-1px}
+.settings-stack{max-width:1100px;display:grid;gap:19px}
+.settings-primary{display:grid;grid-template-columns:1fr 1fr;gap:19px;align-items:start}
+.settings-primary .form-panel{min-width:0}
+.settings-primary .form-panel h2{margin:4px 0 22px}
+.settings-primary .form .button{width:100%}
+.fixed-list{margin-top:23px;padding-top:7px;border-top:1px solid #e6efeb}
+.fixed-list .list-row:last-child{border-bottom:0}
+.rec-buttons{display:flex;gap:11px}
+.settings-explanation{color:#76888a;font-size:12px;margin:0 4px}
+.settings-more{padding:20px 26px}
+.settings-more>summary{cursor:pointer;font-weight:750;font-size:14px;color:#3b635d}
+.settings-more-content{padding-top:22px;display:grid;gap:24px}
+.settings-more-content>.form{max-width:440px}
+.settings-support{border-top:1px solid #e8efec;padding-top:18px}
+.settings-support h2{font-size:16px;margin:0 0 10px}
+.settings-more-content .cloud-panel{margin-top:14px}
+@media(max-width:760px){
+  .main{padding:20px 16px 36px}
+  .simple-home{margin:2px auto 0}
+  .quick-expense-panel{padding:23px 20px}
+  .expense-heading{font-size:27px;margin-bottom:20px}
+  .settings-primary{grid-template-columns:1fr;gap:14px}
+  .settings-more{padding:18px 20px}
+  .daily-summary{padding:20px}
+  .title-row{align-items:stretch}
+  .title-row>.button{align-self:flex-start}
+}

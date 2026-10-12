@@ -1,212 +1,170 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MonthlyTable } from "@/components/MonthlyTable";
 import { CloudPanel } from "@/components/CloudPanel";
+import { MonthlyTable } from "@/components/MonthlyTable";
 import { useCloudSync } from "@/hooks/useCloudSync";
 import {
   type BudgetDocument, type Cadence, type Recurring, type Transaction,
-  addDays, createEmptyBudget, dailyNetOre, dailyResultOre,
-  kronaToOre, mondayOnOrBefore, rangeResultOre, replaceRecurringFrom, todayLocal,
-  validDocument, virtualBalanceOre,
+  addDays, createEmptyBudget, kronaToOre, replaceRecurringFrom, todayLocal,
+  validDocument,
 } from "@/lib/budget";
 
-type Tab = "overview" | "insights" | "monthly" | "transactions" | "recurring" | "settings";
-type EntryType = "expense" | "income";
-const currency = new Intl.NumberFormat("sv-SE", { style: "currency", currency: "SEK", maximumFractionDigits: 0 });
-const asMoney = (ore: number) => currency.format(ore / 100);
-const signedMoney = (ore: number) => (ore > 0 ? "+" : "") + asMoney(ore);
-const formatDate = (day: string) => new Intl.DateTimeFormat("sv-SE", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(day + "T00:00:00Z"));
-const cadenceLabel: Record<Cadence, string> = {
-  weekly: "Varje vecka",
-  monthly: "Varje månad",
-  quarterly: "Varje kvartal",
-  yearly: "Varje år",
-};
-const nav: { id: Tab; label: string; icon: string }[] = [
-  { id: "overview", label: "Idag", icon: "◉" },
-  { id: "insights", label: "Utveckling", icon: "▥" },
+type Tab = "new" | "monthly" | "today" | "settings";
+type FixedKind = "income" | "expense";
+
+const nav: { id: Exclude<Tab, "new">; label: string; icon: string }[] = [
   { id: "monthly", label: "Månadsvy", icon: "▤" },
-  { id: "transactions", label: "Händelser", icon: "⇄" },
-  { id: "recurring", label: "Återkommande", icon: "↻" },
+  { id: "today", label: "Dagens utgifter", icon: "◉" },
   { id: "settings", label: "Inställningar", icon: "⚙" },
 ];
-
-function Trend({ document, workspaceId, today }: { document: BudgetDocument; workspaceId: string; today: string }) {
-  const points = useMemo(() => Array.from({ length: 60 }, (_, index) => {
-    const day = addDays(today, index - 29);
-    return { day, ore: virtualBalanceOre(document, workspaceId, day) };
-  }), [document, workspaceId, today]);
-  const values = points.map((p) => p.ore / 100);
-  const low = Math.min(...values), high = Math.max(...values);
-  const padding = Math.max((high - low) * 0.14, 250);
-  const min = low - padding, max = high + padding;
-  const width = 760, height = 250, top = 24, bottom = 212;
-  const x = (index: number) => 16 + index * (width - 32) / (points.length - 1);
-  const y = (value: number) => bottom - ((value - min) / (max - min)) * (bottom - top);
-  const past = points.slice(0, 30).map((p, i) => `${i ? "L" : "M"} ${x(i).toFixed(2)} ${y(p.ore / 100).toFixed(2)}`).join(" ");
-  const future = points.slice(29).map((p, i) => `${i ? "L" : "M"} ${x(i + 29).toFixed(2)} ${y(p.ore / 100).toFixed(2)}`).join(" ");
-  const area = `${past} L ${x(29)} ${bottom} L ${x(0)} ${bottom} Z`;
-  return (
-    <div className="trend">
-      <svg viewBox="0 0 760 250" role="img" aria-label="Beräknat budgetsaldos utveckling senaste 30 dagarna och prognos 30 dagar framåt">
-        <defs>
-          <linearGradient id="chart-fill" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#16a184" stopOpacity=".24" />
-            <stop offset="100%" stopColor="#16a184" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        {[0, 1, 2, 3, 4].map(i => {
-          const level = min + (max - min) * i / 4;
-          return <g key={i}>
-            <line x1="16" y1={y(level)} x2="744" y2={y(level)} stroke="#e7eced" strokeDasharray="4 7" />
-            <text x="740" y={y(level) - 7} textAnchor="end" className="axis-label">{Math.round(level).toLocaleString("sv-SE")} kr</text>
-          </g>;
-        })}
-        <path d={area} fill="url(#chart-fill)" />
-        <path d={past} stroke="#09896f" strokeWidth="3.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-        <path d={future} stroke="#09896f" opacity=".5" strokeWidth="3" strokeDasharray="6 8" fill="none" strokeLinecap="round" />
-        <line x1={x(29)} x2={x(29)} y1="15" y2={bottom} stroke="#64748b" strokeDasharray="3 5" strokeWidth="1.4" />
-        <circle cx={x(29)} cy={y(points[29].ore / 100)} r="6" fill="#09896f" stroke="white" strokeWidth="3" />
-        <text x="18" y="239" className="axis-label">{formatDate(points[0].day)}</text>
-        <text x={x(29)} y="239" textAnchor="middle" className="axis-label">Idag</text>
-        <text x="742" y="239" textAnchor="end" className="axis-label">{formatDate(points[59].day)}</text>
-      </svg>
-      <div className="chart-legend"><span><i className="legend-dot" /> Historik</span><span><i className="legend-dash" /> Prognos utan framtida köp</span></div>
-    </div>
-  );
-}
+const currency = new Intl.NumberFormat("sv-SE", { style: "currency", currency: "SEK", maximumFractionDigits: 2 });
+const money = (ore: number) => currency.format(ore / 100);
+const formatDay = (day: string) => new Intl.DateTimeFormat("sv-SE", {
+  day: "numeric", month: "long", year: "numeric", timeZone: "UTC",
+}).format(new Date(day + "T00:00:00Z"));
+const cadenceLabel: Record<Cadence, string> = {
+  weekly: "Varje vecka", monthly: "Varje månad",
+  quarterly: "Varje kvartal", yearly: "Varje år",
+};
 
 export default function HomePage() {
-  const [tab, setTab] = useState<Tab>("overview");
-  const [currentDay, setCurrentDay] = useState("2026-10-12");
-  const [notice, setNotice] = useState("");
-  const [quickAmount, setQuickAmount] = useState("");
-  const [quickLabel, setQuickLabel] = useState("");
-  const [txLabel, setTxLabel] = useState("");
-  const [txAmount, setTxAmount] = useState("");
-  const [txType, setTxType] = useState<EntryType>("expense");
-  const [txDate, setTxDate] = useState("");
-  const [recLabel, setRecLabel] = useState("");
-  const [recAmount, setRecAmount] = useState("");
-  const [recType, setRecType] = useState<EntryType>("expense");
-  const [recCadence, setRecCadence] = useState<Cadence>("monthly");
-  const [recStart, setRecStart] = useState("");
-  const [opening, setOpening] = useState("0");
-  const [workspaceName, setWorkspaceName] = useState("Min ekonomi");
-  const fileRef = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    const today = todayLocal();
-    setCurrentDay(today);
-    setTxDate(today);
-    setRecStart(today);
-  }, []);
   const cloud = useCloudSync();
   const document = cloud.budget;
   const workspace = document?.workspaces[0];
   const workspaceId = workspace?.id ?? "personal";
-  const currentBalance = document ? virtualBalanceOre(document, workspaceId, currentDay) : 0;
-  const dailyNet = document ? dailyNetOre(document, workspaceId, currentDay) : 0;
-  const todayResult = document ? dailyResultOre(document, workspaceId, currentDay) : 0;
-  const weekResult = document ? rangeResultOre(document, workspaceId, mondayOnOrBefore(currentDay), currentDay) : 0;
-  const monthResult = document ? rangeResultOre(document, workspaceId, currentDay.slice(0, 7) + "-01", currentDay) : 0;
-  const nextMonthBalance = document ? virtualBalanceOre(document, workspaceId, addDays(currentDay, 30)) : 0;
-  const activeRecurring = useMemo(() => document?.recurring.filter(r => r.workspaceId === workspaceId && r.endsOn === null) ?? [], [document, workspaceId]);
-  const historicalRecurring = useMemo(() => document?.recurring.filter(r => r.workspaceId === workspaceId && r.endsOn !== null) ?? [], [document, workspaceId]);
-  const transactions = useMemo(() => (document?.transactions ?? []).filter(t => t.workspaceId === workspaceId)
-    .sort((a, b) => b.bookedOn.localeCompare(a.bookedOn) || b.createdAt.localeCompare(a.createdAt)), [document, workspaceId]);
+  const [tab, setTab] = useState<Tab>("new");
+  const [today, setToday] = useState("2026-10-12");
+  const [expenseDay, setExpenseDay] = useState("2026-10-12");
+  const [amount, setAmount] = useState("");
+  const [description, setDescription] = useState("");
+  const [notice, setNotice] = useState("");
+  const [incomeLabel, setIncomeLabel] = useState("Lön");
+  const [incomeAmount, setIncomeAmount] = useState("");
+  const [fixedLabel, setFixedLabel] = useState("");
+  const [fixedAmount, setFixedAmount] = useState("");
+  const [workspaceName, setWorkspaceName] = useState("Min ekonomi");
+  const [opening, setOpening] = useState("0");
+  const fileInput = useRef<HTMLInputElement>(null);
 
-  async function mutate(update: (value: BudgetDocument) => BudgetDocument): Promise<boolean> {
-    return cloud.saveBudget(update);
-  }
-  async function addQuickExpense(event: React.FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    const current = todayLocal();
+    setToday(current);
+    setExpenseDay(current);
+  }, []);
+  useEffect(() => {
+    if (!workspace) return;
+    setWorkspaceName(workspace.name);
+    setOpening(String(workspace.openingBalanceOre / 100));
+  }, [workspace?.id, workspace?.name, workspace?.openingBalanceOre]);
+
+  const todaysExpenses = useMemo(() => (document?.transactions ?? [])
+    .filter(t => t.workspaceId === workspaceId && t.bookedOn === today && t.amountOre < 0)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [document, today, workspaceId]);
+  const todaysTotal = todaysExpenses.reduce((sum, item) => sum + Math.abs(item.amountOre), 0);
+  const activeRecurring = useMemo(() => (document?.recurring ?? [])
+    .filter(r => r.workspaceId === workspaceId && r.endsOn === null), [document, workspaceId]);
+  const oldRecurring = useMemo(() => (document?.recurring ?? [])
+    .filter(r => r.workspaceId === workspaceId && r.endsOn !== null), [document, workspaceId]);
+
+  function show(tabId: Tab) { setTab(tabId); setNotice(""); }
+  function newExpense(date = today) { setExpenseDay(date); show("new"); }
+
+  async function addExpense(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const amount = kronaToOre(quickAmount);
-    if (!document || !amount) {
-      setNotice("Ange ett giltigt belopp över noll, med högst två decimaler.");
+    const ore = kronaToOre(amount);
+    if (!document || !ore || !expenseDay) {
+      setNotice("Ange ett giltigt belopp över noll.");
       return;
     }
-    const row: Transaction = {
+    const item: Transaction = {
       id: crypto.randomUUID(),
       workspaceId,
       memberId: document.members[0]?.id ?? null,
-      label: quickLabel.trim() || "Utgift",
-      amountOre: -amount,
-      bookedOn: currentDay,
+      label: description.trim() || "Utgift",
+      amountOre: -ore,
+      bookedOn: expenseDay,
       createdAt: new Date().toISOString(),
     };
-    if (await mutate(d => ({ ...d, transactions: [...d.transactions, row] }))) {
-      setQuickAmount("");
-      setQuickLabel("");
-      setNotice(`Utgift på ${asMoney(amount)} sparad i Firebase.`);
+    if (await cloud.saveBudget(d => ({ ...d, transactions: [...d.transactions, item] }))) {
+      setAmount("");
+      setDescription("");
+      setNotice("Utgiften är sparad i Firebase.");
     }
   }
-  async function addTransaction(event: React.FormEvent<HTMLFormElement>) {
+
+  async function addFixed(event: React.FormEvent<HTMLFormElement>, kind: FixedKind) {
     event.preventDefault();
-    const amount = kronaToOre(txAmount);
-    if (!document || !amount || !txLabel.trim() || !txDate) {
-      setNotice("Fyll i beskrivning, datum och ett giltigt belopp över noll."); return;
+    if (!document) return;
+    const label = (kind === "income" ? incomeLabel : fixedLabel).trim();
+    const ore = kronaToOre(kind === "income" ? incomeAmount : fixedAmount);
+    if (!ore || !label) {
+      setNotice("Ange en beskrivning och ett giltigt belopp.");
+      return;
     }
-    const row: Transaction = {
-      id: crypto.randomUUID(), workspaceId, memberId: document.members[0]?.id ?? null,
-      label: txLabel.trim(), amountOre: txType === "expense" ? -amount : amount,
-      bookedOn: txDate, createdAt: new Date().toISOString(),
+    const item: Recurring = {
+      id: crypto.randomUUID(),
+      workspaceId,
+      memberId: document.members[0]?.id ?? null,
+      label,
+      amountOre: kind === "income" ? ore : -ore,
+      cadence: "monthly",
+      startsOn: today,
+      endsOn: null,
     };
-    if (await mutate(d => ({ ...d, transactions: [...d.transactions, row] }))) {
-      setTxLabel(""); setTxAmount(""); setNotice("Händelsen har sparats i Firebase.");
+    if (await cloud.saveBudget(d => ({ ...d, recurring: [...d.recurring, item] }))) {
+      if (kind === "income") { setIncomeLabel("Lön"); setIncomeAmount(""); }
+      else { setFixedLabel(""); setFixedAmount(""); }
+      setNotice(kind === "income" ? "Inkomsten är sparad i Firebase." : "Den fasta kostnaden är sparad i Firebase.");
     }
   }
-  async function addRecurring(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const amount = kronaToOre(recAmount);
-    if (!document || !amount || !recLabel.trim() || !recStart) {
-      setNotice("Fyll i beskrivning, startdatum och ett giltigt belopp över noll."); return;
-    }
-    const row: Recurring = {
-      id: crypto.randomUUID(), workspaceId, memberId: document.members[0]?.id ?? null,
-      label: recLabel.trim(), amountOre: recType === "expense" ? -amount : amount,
-      cadence: recCadence, startsOn: recStart, endsOn: null,
-    };
-    if (await mutate(d => ({ ...d, recurring: [...d.recurring, row] }))) {
-      setRecLabel(""); setRecAmount(""); setNotice("Den återkommande posten har sparats i Firebase.");
-    }
-  }
-  function changeRecurring(item: Recurring) {
-    const raw = window.prompt("Nytt belopp i kronor (ange utan minustecken). Ändringen gäller från idag.", String(Math.abs(item.amountOre) / 100));
-    if (raw === null) return;
-    const ore = kronaToOre(raw);
+
+  function editFixed(item: Recurring) {
+    const input = window.prompt("Nytt belopp i kronor per tillfälle:", String(Math.abs(item.amountOre) / 100));
+    if (input === null) return;
+    const ore = kronaToOre(input);
     if (!ore) { setNotice("Ogiltigt belopp."); return; }
-    if (item.startsOn > currentDay) { setNotice("Denna post börjar i framtiden. Avsluta den och skapa en ny i stället."); return; }
-    void mutate(d => replaceRecurringFrom(d, item.id, currentDay, Math.sign(item.amountOre) * ore))
-      .then(saved => { if (saved) setNotice("Ny version sparad i Firebase. Historiken är kvar."); });
+    const from = item.startsOn > today ? item.startsOn : today;
+    void cloud.saveBudget(d => replaceRecurringFrom(d, item.id, from, Math.sign(item.amountOre) * ore))
+      .then(saved => { if (saved) setNotice("Beloppet är uppdaterat i Firebase."); });
   }
-  function endRecurring(item: Recurring) {
-    if (!window.confirm("Avsluta " + item.label + "? Tidigare historik bevaras.")) return;
-    void mutate(d => ({ ...d, recurring: item.startsOn >= currentDay
-      ? d.recurring.filter(r => r.id !== item.id)
-      : d.recurring.map(r => r.id === item.id ? { ...r, endsOn: addDays(currentDay, -1) } : r) }))
-      .then(saved => { if (saved) setNotice("Posten har avslutats i Firebase."); });
+
+  function endFixed(item: Recurring) {
+    if (!window.confirm("Avsluta " + item.label + "? Tidigare budgethistorik behålls.")) return;
+    void cloud.saveBudget(d => ({
+      ...d,
+      recurring: item.startsOn >= today
+        ? d.recurring.filter(r => r.id !== item.id)
+        : d.recurring.map(r => r.id === item.id ? { ...r, endsOn: addDays(today, -1) } : r),
+    })).then(saved => { if (saved) setNotice("Posten har avslutats i Firebase."); });
   }
-  function deleteTransaction(id: string) {
-    if (!window.confirm("Ta bort händelsen?")) return;
-    void mutate(d => ({ ...d, transactions: d.transactions.filter(t => t.id !== id) }))
-      .then(saved => { if (saved) setNotice("Händelsen har tagits bort i Firebase."); });
+
+  function deleteExpense(item: Transaction) {
+    if (!window.confirm("Ta bort utgiften " + item.label + "?")) return;
+    void cloud.saveBudget(d => ({ ...d, transactions: d.transactions.filter(t => t.id !== item.id) }))
+      .then(saved => { if (saved) setNotice("Utgiften har tagits bort."); });
   }
-  async function resetBudget() {
-    if (!window.confirm("Börja om med en helt tom budget i Firebase? Det kan inte ångras. Exportera en backup först.")) return;
-    const empty = createEmptyBudget(currentDay);
-    if (await cloud.saveBudget(() => empty)) {
-      setOpening("0"); setWorkspaceName("Min ekonomi");
-      setNotice("En ny tom budget har sparats i Firebase.");
+
+  async function saveWorkspace(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const normalized = opening.trim().replace(/\s/g, "").replace(",", ".");
+    if (!/^-?\d+(\.\d{1,2})?$/.test(normalized) || !workspaceName.trim()) {
+      setNotice("Ange ett namn och giltigt startsaldo."); return;
     }
+    const ore = Math.round(Number(normalized) * 100);
+    if (!Number.isSafeInteger(ore)) { setNotice("Beloppet är för stort."); return; }
+    if (await cloud.saveBudget(d => ({ ...d, workspaces: d.workspaces.map(w =>
+      w.id === workspaceId ? { ...w, name: workspaceName.trim(), openingBalanceOre: ore } : w,
+    ) }))) setNotice("Budgetinställningarna är sparade i Firebase.");
   }
+
   function exportBackup() {
     if (!document) return;
-    const url = URL.createObjectURL(new Blob([JSON.stringify(document, null, 2)], { type: "application/json" }));
+    const blob = new Blob([JSON.stringify(document, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
     const link = window.document.createElement("a");
     link.href = url;
-    link.download = `budget-app-backup-${currentDay}.json`;
+    link.download = "budget-app-backup-" + today + ".json";
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1500);
   }
@@ -215,203 +173,208 @@ export default function HomePage() {
     if (!file) return;
     try {
       const parsed: unknown = JSON.parse(await file.text());
-      if (!validDocument(parsed) || parsed.demo) throw new Error("Ogiltigt backupformat");
-      if (!window.confirm("Ersätta din befintliga molnbudget med denna säkerhetskopia? Exportera din nuvarande budget först.")) return;
+      if (!validDocument(parsed) || parsed.demo) throw new Error("Ogiltigt format");
+      if (!window.confirm("Ersätta din molnbudget med denna säkerhetskopia? Exportera gärna den nuvarande budgeten först.")) return;
       if (await cloud.saveBudget(() => parsed)) setNotice("Säkerhetskopian har återställts i Firebase.");
-    } catch { setNotice("Filen är inte en giltig Budget App-säkerhetskopia."); }
-    finally { event.target.value = ""; }
-  }
-  async function saveWorkspace(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const normalized = opening.trim().replace(/\s/g, "").replace(",", ".");
-    if (!/^-?\d+(\.\d{1,2})?$/.test(normalized) || !workspaceName.trim()) {
-      setNotice("Ange ett giltigt namn och startsaldo."); return;
-    }
-    const ore = Math.round(Number(normalized) * 100);
-    if (!Number.isSafeInteger(ore)) { setNotice("För stort belopp."); return; }
-    if (await mutate(d => ({ ...d, workspaces: d.workspaces.map(w => w.id === workspaceId
-      ? { ...w, name: workspaceName.trim(), openingBalanceOre: ore } : w) }))) {
-      setNotice("Inställningarna har sparats i Firebase.");
+    } catch {
+      setNotice("Filen är inte en giltig Budget App-säkerhetskopia.");
+    } finally {
+      event.target.value = "";
     }
   }
-  useEffect(() => {
-    if (workspace) {
-      setOpening(String(workspace.openingBalanceOre / 100));
-      setWorkspaceName(workspace.name);
-    }
-  }, [workspace?.id, workspace?.openingBalanceOre, workspace?.name]);
+  async function resetBudget() {
+    if (!window.confirm("Radera budgetens innehåll i Firebase och börja om? Exportera en säkerhetskopia först.")) return;
+    if (await cloud.saveBudget(() => createEmptyBudget(today))) setNotice("En tom budget har skapats i Firebase.");
+  }
 
-  if (cloud.status === "loading") return <main className="loading">Hämtar budget från Firebase …</main>;
-  // Keep the budget screen private until authentication and cloud connection are ready.
+  function FixedList({ kind }: { kind: FixedKind }) {
+    const selected = activeRecurring.filter(r => kind === "income" ? r.amountOre > 0 : r.amountOre < 0);
+    const historic = oldRecurring.filter(r => kind === "income" ? r.amountOre > 0 : r.amountOre < 0);
+    return <>
+      <div className="fixed-list" aria-label={kind === "income" ? "Sparade inkomster" : "Sparade fasta kostnader"}>
+        {selected.length === 0 && <p className="empty-small">Inga poster inlagda ännu.</p>}
+        {selected.map(item => <div className="list-row recurring-row" key={item.id}>
+          <div><strong>{item.label}</strong><small>{cadenceLabel[item.cadence]} · från {formatDay(item.startsOn)}</small></div>
+          <div className="rec-actions">
+            <strong className={item.amountOre > 0 ? "positive" : "negative"}>{money(item.amountOre)}</strong>
+            <div className="rec-buttons">
+              <button disabled={cloud.status === "saving"} className="quiet-button" type="button" onClick={() => editFixed(item)}>Ändra</button>
+              <button disabled={cloud.status === "saving"} className="quiet-button danger-link" type="button" onClick={() => endFixed(item)}>Avsluta</button>
+            </div>
+          </div>
+        </div>)}
+      </div>
+      {historic.length > 0 && <details className="archived">
+        <summary>Historik ({historic.length})</summary>
+        {historic.map(item => <div className="archived-row" key={item.id}>
+          {item.label} · {money(item.amountOre)} · {cadenceLabel[item.cadence]}
+        </div>)}
+      </details>}
+    </>;
+  }
+
+  if (cloud.status === "loading") return <main className="loading">Hämtar din budget från Firebase …</main>;
   if (cloud.status !== "active" && cloud.status !== "saving") {
     return <main className="auth-screen">
       <div className="auth-layout">
         <div className="auth-intro">
           <div className="brand"><div className="brand-mark">◈</div><div><strong>budget<span>.</span></strong><small>ETT DRAG I TAGET</small></div></div>
-          <h1>Din ekonomi, samlad på ett ställe.</h1>
-          <p>Din budget finns i Firebase och är densamma på alla dina enheter.</p>
+          <h1>En enklare vardagsekonomi.</h1>
+          <p>Logga in så har du din budget på alla dina enheter.</p>
         </div>
         <CloudPanel cloud={cloud} mode="welcome" />
       </div>
     </main>;
   }
-  if (!document || !workspace) return <main className="loading">Hämtar din budget …</main>;
-  return (
-    <div className="shell">
-      <aside className="sidebar">
-        <div className="brand"><div className="brand-mark">◈</div><div><strong>budget<span>.</span></strong><small>ETT DRAG I TAGET</small></div></div>
-        <div className="sidebar-caption">MIN EKONOMI</div>
-        <nav className="nav" aria-label="Huvudmeny">
-          {nav.map(item => <button type="button" key={item.id} onClick={() => { setTab(item.id); setNotice(""); }}
-            className={tab === item.id ? "nav-item active" : "nav-item"}>
-            <span className="nav-symbol">{item.icon}</span>{item.label}
-          </button>)}
-        </nav>
-        <div className="sidebar-bottom"><div className="sidebar-avatar">J</div><div><strong>Personlig budget</strong><small>{cloud.status === "saving" ? "Sparar i Firebase" : "Molnbudget"}</small></div></div>
-      </aside>
-      <div className="main-shell">
-        <header className="mobile-head"><div className="brand"><div className="brand-mark">◈</div><strong>budget<span>.</span></strong></div><span className="mobile-lock">{cloud.status === "saving" ? "☁ Sparar …" : "☁ Firebase"}</span></header>
-        <nav className="mobile-nav" aria-label="Huvudmeny">
-          {nav.map(item => <button type="button" key={item.id} onClick={() => { setTab(item.id); setNotice(""); }}
-            className={tab === item.id ? "mobile-nav-item selected" : "mobile-nav-item"}>{item.label}</button>)}
-        </nav>
-        <main className="main">
-          {tab !== "overview" && <div className="title-row">
-            <div><div className="eyebrow">{formatDate(currentDay).toUpperCase()} · {workspace.name.toUpperCase()}</div>
-              <h1>{nav.find(n => n.id === tab)?.label}</h1>
-              <p className="lead">{tab === "insights" ? "Saldo, prognoser och ekonomins utveckling." :
-                tab === "monthly" ? "Varje dag i månaden, samlad på ett ställe." :
-                tab === "transactions" ? "Registrera det som händer mellan löningarna." :
-                tab === "recurring" ? "Grunden som driver ditt dagliga ekonomiska netto." :
-                "Din data, din kontroll."}</p></div>
-            <div className="top-actions"><span className="privacy-pill">{cloud.status === "saving" ? "● Sparar i Firebase …" : "● Sparad i Firebase"}</span></div>
-          </div>}
-          {cloud.message && <div className="notice" role="status">{cloud.message}</div>}
-          {notice && <div className="notice" role="status">{notice}<button type="button" onClick={() => setNotice("")} aria-label="Stäng meddelande">×</button></div>}
-          {tab === "overview" && <div className="simple-home">
-            <section className="hero-main focused-hero" aria-label="Dagens resultat">
-              <div className="hero-overline">DAGENS RESULTAT</div>
-              <div className={todayResult >= 0 ? "hero-number" : "hero-number negative"}>{signedMoney(todayResult)}</div>
-              <p>{formatDate(currentDay)}</p>
-            </section>
-            <section className="panel quick-expense-panel" aria-labelledby="quick-expense-heading">
-              <h2 id="quick-expense-heading">Registrera utgift</h2>
-              <form className="quick-expense-form" onSubmit={addQuickExpense}>
-                <label htmlFor="quick-amount">Belopp (kr)
-                  <input id="quick-amount" type="text" required inputMode="decimal"
-                    placeholder="0,00" value={quickAmount}
-                    onChange={event => setQuickAmount(event.target.value)} />
-                </label>
-                <label htmlFor="quick-label">Vad köpte du? <span>(valfritt)</span>
-                  <input id="quick-label" type="text" maxLength={90}
-                    placeholder="Till exempel lunch" value={quickLabel}
-                    onChange={event => setQuickLabel(event.target.value)} />
-                </label>
-                <button disabled={cloud.status === "saving"} type="submit" className="button button-primary quick-submit">{cloud.status === "saving" ? "Sparar …" : "+ Lägg till utgift"}</button>
-              </form>
-            </section>
-          </div>}
-          {tab === "insights" && <>
-            <section className="insights-balance">
-              <div className="hero-side">
-                <div className="mini-caption">BERÄKNAT BUDGETSALDO</div>
-                <div className="balance-figure">{asMoney(currentBalance)}</div>
-                <p>Virtuellt saldo sedan {formatDate(workspace.anchorOn)}, inte pengar på banken.</p>
-                <div className="small-divider" />
-                <div className="mini-caption">OM 30 DAGAR</div>
-                <div className="future-figure">{asMoney(nextMonthBalance)} <span>{signedMoney(nextMonthBalance - currentBalance)}</span></div>
-                <p>Om du inte registrerar fler rörliga utgifter.</p>
-              </div>
-            </section>
-            <section className="metric-grid" aria-label="Periodresultat">
-              <div className="metric"><div className="metric-label">Dagligt grundnetto <span>↗</span></div><div className={dailyNet >= 0 ? "metric-value positive" : "metric-value negative"}>{signedMoney(dailyNet)}</div><p>Fasta inkomster minus fasta kostnader per dag</p></div>
-              <div className="metric"><div className="metric-label">Denna vecka <span>↗</span></div><div className={weekResult >= 0 ? "metric-value positive" : "metric-value negative"}>{signedMoney(weekResult)}</div><p>Från måndag till idag</p></div>
-              <div className="metric"><div className="metric-label">Denna månad <span>↗</span></div><div className={monthResult >= 0 ? "metric-value positive" : "metric-value negative"}>{signedMoney(monthResult)}</div><p>Från månadens början</p></div>
-            </section>
-            <div className="section-grid">
-              <section className="panel chart-panel">
-                <div className="panel-heading"><div><div className="mini-caption">DIN RIKTNING</div><h2>Ekonomins utveckling</h2></div><span className="subtle-tag">30 dagar bakåt + 30 framåt</span></div>
-                <Trend document={document} workspaceId={workspaceId} today={currentDay} />
-              </section>
-              <section className="panel activity-panel">
-                <div className="panel-heading"><div><div className="mini-caption">DET SOM HÄNDER</div><h2>Senaste händelser</h2></div><button className="text-button" type="button" onClick={() => setTab("transactions")}>Visa alla ↗</button></div>
-                {transactions.length === 0 ? <div className="empty-small">Inga köp ännu. Registrera ett för att börja.</div> :
-                  transactions.slice(0, 5).map(t => <div className="activity" key={t.id}><div className={t.amountOre >= 0 ? "activity-icon gain" : "activity-icon"}>{t.amountOre >= 0 ? "↗" : "↙"}</div><div className="activity-name"><strong>{t.label}</strong><small>{formatDate(t.bookedOn)}</small></div><strong className={t.amountOre >= 0 ? "positive" : ""}>{signedMoney(t.amountOre)}</strong></div>)}
-                <button className="button button-primary activity-cta" type="button" onClick={() => setTab("transactions")}>+ Registrera en händelse</button>
-              </section>
-            </div>
-            <div className="bottom-hint"><span>ⓘ</span> Prognosen bygger på fasta poster. Framtida mat, resor och andra rörliga utgifter ingår inte förrän du registrerar dem.</div>
-          </>}
-          {tab === "monthly" && <MonthlyTable document={document} workspaceId={workspaceId} today={currentDay}
-            onAddTransaction={(date) => { setTxDate(date); setTab("transactions"); setNotice(""); }} />}
-          {tab === "transactions" && <div className="two-columns">
-            <section className="panel form-panel"><div className="mini-caption">NY HÄNDELSE</div><h2>Vad har hänt?</h2>
-              <form onSubmit={addTransaction} className="form">
-                <label>Typ <select value={txType} onChange={e => setTxType(e.target.value as EntryType)}><option value="expense">Utgift</option><option value="income">Extra inkomst</option></select></label>
-                <label>Beskrivning <input required maxLength={90} placeholder="Exempel: Handla mat" value={txLabel} onChange={e => setTxLabel(e.target.value)} /></label>
-                <label>Belopp i kronor <input required inputMode="decimal" placeholder="249,50" value={txAmount} onChange={e => setTxAmount(e.target.value)} /></label>
-                <label>Datum <input required type="date" value={txDate} onChange={e => setTxDate(e.target.value)} /></label>
-                <button className="button button-primary" type="submit">Spara händelse →</button>
-              </form><p className="form-hint">Fasta räkningar ska bara finnas under Återkommande, annars räknas de dubbelt.</p>
-            </section>
-            <section className="panel list-panel"><div className="panel-heading"><div><div className="mini-caption">DIN HISTORIK</div><h2>Registrerade händelser</h2></div><span className="subtle-tag">{transactions.length} st</span></div>
-              {transactions.length === 0 ? <div className="empty-state">Här kommer dina köp och extra inkomster att visas.</div> : transactions.map(t => <div className="list-row" key={t.id}>
-                <div><strong>{t.label}</strong><small>{formatDate(t.bookedOn)}</small></div>
-                <div className="list-row-right"><strong className={t.amountOre >= 0 ? "positive" : "negative"}>{signedMoney(t.amountOre)}</strong><button className="icon-button" type="button" title="Ta bort händelse" aria-label={"Ta bort " + t.label} onClick={() => deleteTransaction(t.id)}>×</button></div>
-              </div>)}
-            </section>
-          </div>}
-          {tab === "recurring" && <div className="two-columns">
-            <section className="panel form-panel"><div className="mini-caption">DIN GRUND</div><h2>Ny återkommande post</h2>
-              <form onSubmit={addRecurring} className="form">
-                <label>Typ <select value={recType} onChange={e => setRecType(e.target.value as EntryType)}><option value="expense">Fast utgift</option><option value="income">Fast inkomst</option></select></label>
-                <label>Beskrivning <input required maxLength={90} placeholder="Exempel: Lön eller hyra" value={recLabel} onChange={e => setRecLabel(e.target.value)} /></label>
-                <label>Belopp per tillfälle (kr) <input required inputMode="decimal" placeholder="12000" value={recAmount} onChange={e => setRecAmount(e.target.value)} /></label>
-                <label>Hur ofta? <select value={recCadence} onChange={e => setRecCadence(e.target.value as Cadence)}>
-                  <option value="weekly">Varje vecka</option><option value="monthly">Varje månad</option><option value="quarterly">Varje kvartal</option><option value="yearly">Varje år</option></select></label>
-                <label>Gäller från <input required type="date" value={recStart} onChange={e => setRecStart(e.target.value)} /></label>
-                <button className="button button-primary" type="submit">Lägg till post →</button>
-              </form><p className="form-hint">Beloppet jämnas ut över årets dagar. Utbetalningsdatum styr inte dagsnettot.</p>
-            </section>
-            <section className="panel list-panel"><div className="panel-heading"><div><div className="mini-caption">AUTOMATISKT VARJE DAG</div><h2>Fasta inkomster & utgifter</h2></div><span className="subtle-tag">{activeRecurring.length} aktiva</span></div>
-              {activeRecurring.length === 0 ? <div className="empty-state">Lägg till lön, hyra eller ett abonnemang för att skapa ditt dagsnetto.</div> :
-                activeRecurring.map(r => <div className="list-row recurring-row" key={r.id}>
-                  <div><strong>{r.label}</strong><small>{cadenceLabel[r.cadence]} · från {formatDate(r.startsOn)}</small></div>
-                  <div className="rec-actions"><strong className={r.amountOre >= 0 ? "positive" : "negative"}>{signedMoney(r.amountOre)}</strong>
-                    <button type="button" className="quiet-button" onClick={() => changeRecurring(r)}>Ändra</button>
-                    <button type="button" className="quiet-button danger-link" onClick={() => endRecurring(r)}>Avsluta</button></div>
-                </div>)}
-              {historicalRecurring.length > 0 && <details className="archived"><summary>Avslutade och tidigare versioner ({historicalRecurring.length})</summary>
-                {historicalRecurring.map(r => <div key={r.id} className="archived-row">{r.label}: {signedMoney(r.amountOre)} · {r.startsOn} till {r.endsOn}</div>)}</details>}
-            </section>
-          </div>}
-          {tab === "settings" && <div className="two-columns">
-            <section className="panel form-panel"><div className="mini-caption">GRUNDINSTÄLLNINGAR</div><h2>Din budget</h2>
-              <form className="form" onSubmit={saveWorkspace}>
-                <label>Namn på din ekonomi <input value={workspaceName} onChange={e => setWorkspaceName(e.target.value)} maxLength={70} /></label>
-                <label>Virtuellt startsaldo (kr) <input inputMode="decimal" value={opening} onChange={e => setOpening(e.target.value)} /></label>
-                <div className="form-hint">Startdatum: {formatDate(workspace.anchorOn)}. Startsaldo är en budgetposition, inte ett verifierat banksaldo. Ändringar av startsaldot påverkar hela den beräknade historiken.</div>
-                <button className="button button-primary" type="submit">Spara inställningar →</button>
-              </form>
-            </section>
-            <section className="panel form-panel"><div className="mini-caption">SÄKERHETSKOPIOR</div><h2>Data och säkerhetskopior</h2>
-              <p className="settings-copy">"Budgeten lagras endast i Firebase. Ändringar syns när servern har bekräftat att de sparats."</p>
-              <div className="settings-actions"><button type="button" className="button button-secondary" onClick={exportBackup}>↓ Exportera JSON-backup</button>
-                <button type="button" className="button button-outline" onClick={() => fileRef.current?.click()}>↑ Importera backup</button>
-                <input ref={fileRef} type="file" accept=".json,application/json" className="hidden-file" onChange={importBackup} /></div>
-              <p className="form-hint">Använd bara betrodda enheter. Lokal data kan försvinna om webbläsarens lagring rensas. Spara regelbundna säkerhetskopior.</p>
-              <div className="pwa-settings">
-                <div className="mini-caption">INSTALLERA APPEN</div>
-                <h2>Budget på hemskärmen</h2>
-                <p className="settings-copy">På iPhone: öppna i Safari, välj Dela och sedan Lägg till på hemskärmen. På Android: använd webbläsarens alternativ Installera app.</p>
-                <p className="form-hint">Appen kan öppnas utan internet efter ett första besök online. Lokal data sparas även utan uppkoppling, men osynkade ändringar slås inte automatiskt ihop mellan enheter. Exportera en backup innan du byter webbläsare eller installerar om.</p>
-              </div>
-              <button type="button" className="danger-button" onClick={resetBudget}>Börja om med tom budget</button>
-            </section>
-            <CloudPanel cloud={cloud} />
-          </div>}
-        </main>
+  if (!document || !workspace) return <main className="loading">Hämtar budget från Firebase …</main>;
+
+  return <div className="shell">
+    <aside className="sidebar">
+      <button type="button" className="brand brand-home" aria-label="Till registrera utgift" onClick={() => newExpense()}>
+        <span className="brand-mark">◈</span><span><strong>budget<span>.</span></strong><small>ETT DRAG I TAGET</small></span>
+      </button>
+      <button type="button" className={"menu-expense-action" + (tab === "new" ? " is-active" : "")} onClick={() => newExpense()}>+ Ny utgift</button>
+      <div className="sidebar-caption">ÖVERSIKT</div>
+      <nav className="nav" aria-label="Huvudmeny">
+        {nav.map(item => <button type="button" key={item.id} onClick={() => show(item.id)}
+          className={tab === item.id ? "nav-item active" : "nav-item"}>
+          <span className="nav-symbol">{item.icon}</span>{item.label}
+        </button>)}
+      </nav>
+      <div className="sidebar-bottom"><span className="sidebar-avatar">✓</span>
+        <span><strong>{workspace.name}</strong><small>{cloud.status === "saving" ? "Sparar i Firebase …" : "Firebase ansluten"}</small></span>
       </div>
+    </aside>
+    <div className="main-shell">
+      <header className="mobile-head">
+        <button type="button" className="brand brand-home" aria-label="Registrera en ny utgift" onClick={() => newExpense()}>
+          <span className="brand-mark">◈</span><strong>budget<span>.</span></strong>
+        </button>
+        <button type="button" className="mobile-expense-action" onClick={() => newExpense()}>+ Utgift</button>
+      </header>
+      <nav className="mobile-nav" aria-label="Huvudmeny">
+        {nav.map(item => <button type="button" key={item.id} onClick={() => show(item.id)}
+          className={tab === item.id ? "mobile-nav-item selected" : "mobile-nav-item"}>{item.label}</button>)}
+      </nav>
+      <main className="main">
+        {tab !== "new" && <div className="title-row">
+          <div><div className="eyebrow">{formatDay(today).toUpperCase()}</div>
+            <h1>{nav.find(item => item.id === tab)?.label}</h1>
+          </div>
+          <button type="button" className="button button-secondary" onClick={() => newExpense()}>+ Ny utgift</button>
+        </div>}
+        {cloud.message && <div className="notice" role="status">{cloud.message}</div>}
+        {notice && <div className="notice" role="status">{notice}
+          <button type="button" onClick={() => setNotice("")} aria-label="Stäng meddelandet">×</button>
+        </div>}
+
+        {tab === "new" && <div className="simple-home">
+          <section className="panel quick-expense-panel" aria-labelledby="new-expense-heading">
+            <div className="mini-caption">SNABBT OCH ENKELT</div>
+            <h1 id="new-expense-heading" className="expense-heading">Lägg till utgift</h1>
+            <form className="quick-expense-form" onSubmit={addExpense}>
+              <label htmlFor="expense-amount">Belopp (kr)
+                <input id="expense-amount" type="text" required inputMode="decimal"
+                  autoComplete="off" placeholder="0,00" value={amount} onChange={e => setAmount(e.target.value)} />
+              </label>
+              <label htmlFor="expense-description">Vad köpte du? <span>(valfritt)</span>
+                <input id="expense-description" type="text" maxLength={90}
+                  placeholder="Till exempel lunch" value={description} onChange={e => setDescription(e.target.value)} />
+              </label>
+              <label htmlFor="expense-date" className="expense-date-label">Datum
+                <input id="expense-date" type="date" required value={expenseDay} onChange={e => setExpenseDay(e.target.value)} />
+              </label>
+              <button disabled={cloud.status === "saving"} type="submit" className="button button-primary quick-submit">
+                {cloud.status === "saving" ? "Sparar …" : "Spara utgift"}
+              </button>
+            </form>
+            <p className="expense-save-hint">Utgiften visas när den har sparats i Firebase.</p>
+          </section>
+          <button type="button" className="today-preview" onClick={() => show("today")}>
+            <span><strong>Utgifter idag</strong><small>{todaysExpenses.length} registrerade</small></span>
+            <strong>{money(todaysTotal)} <span>›</span></strong>
+          </button>
+        </div>}
+
+        {tab === "today" && <div className="daily-expenses">
+          <section className="panel daily-summary">
+            <div><span className="mini-caption">{formatDay(today).toUpperCase()}</span><h2>Totalt idag</h2></div>
+            <strong>{money(todaysTotal)}</strong>
+          </section>
+          <section className="panel list-panel">
+            <div className="panel-heading"><h2>Registrerade utgifter</h2><span className="subtle-tag">{todaysExpenses.length} st</span></div>
+            {todaysExpenses.length === 0 ? <div className="empty-state">Du har inte registrerat några utgifter idag.</div> :
+              todaysExpenses.map(item => <div className="list-row" key={item.id}>
+                <div><strong>{item.label}</strong><small>{formatDay(item.bookedOn)}</small></div>
+                <div className="list-row-right">
+                  <strong className="negative">{money(Math.abs(item.amountOre))}</strong>
+                  <button disabled={cloud.status === "saving"} className="icon-button" type="button"
+                    aria-label={"Ta bort " + item.label} title="Ta bort utgift" onClick={() => deleteExpense(item)}>×</button>
+                </div>
+              </div>)}
+          </section>
+        </div>}
+
+        {tab === "monthly" && <MonthlyTable document={document} workspaceId={workspaceId} today={today}
+          onAddTransaction={date => newExpense(date)} />}
+
+        {tab === "settings" && <div className="settings-stack">
+          <div className="settings-primary">
+            <section className="panel form-panel">
+              <div className="mini-caption">PENGAR IN</div>
+              <h2>Min inkomst</h2>
+              <form className="form" onSubmit={event => addFixed(event, "income")}>
+                <label>Beskrivning <input required maxLength={90} value={incomeLabel}
+                  onChange={e => setIncomeLabel(e.target.value)} placeholder="Lön" /></label>
+                <label>Inkomst per månad (kr) <input required inputMode="decimal" value={incomeAmount}
+                  onChange={e => setIncomeAmount(e.target.value)} placeholder="30 000" /></label>
+                <button disabled={cloud.status === "saving"} className="button button-primary" type="submit">+ Lägg till inkomst</button>
+              </form>
+              <FixedList kind="income" />
+            </section>
+            <section className="panel form-panel">
+              <div className="mini-caption">PENGAR UT VARJE MÅNAD</div>
+              <h2>Fasta kostnader</h2>
+              <form className="form" onSubmit={event => addFixed(event, "expense")}>
+                <label>Vad gäller kostnaden? <input required maxLength={90} value={fixedLabel}
+                  onChange={e => setFixedLabel(e.target.value)} placeholder="Till exempel hyra eller el" /></label>
+                <label>Kostnad per månad (kr) <input required inputMode="decimal" value={fixedAmount}
+                  onChange={e => setFixedAmount(e.target.value)} placeholder="7 500" /></label>
+                <button disabled={cloud.status === "saving"} className="button button-primary" type="submit">+ Lägg till fast kostnad</button>
+              </form>
+              <FixedList kind="expense" />
+            </section>
+          </div>
+          <p className="settings-explanation">Inkomster och fasta kostnader räknas automatiskt in i månadsvyn. Tidigare sparade poster med andra intervall behåller sina intervall.</p>
+          <details className="panel settings-more">
+            <summary>Fler inställningar</summary>
+            <div className="settings-more-content">
+              <form className="form" onSubmit={saveWorkspace}>
+                <h2>Budgetens startsaldo</h2>
+                <label>Namn på ekonomin <input required maxLength={70} value={workspaceName} onChange={e => setWorkspaceName(e.target.value)} /></label>
+                <label>Virtuellt startsaldo (kr) <input required inputMode="decimal" value={opening} onChange={e => setOpening(e.target.value)} /></label>
+                <p className="form-hint">Startdatum: {formatDay(workspace.anchorOn)}. Detta är ett beräknat budgetsaldo, inte ditt banksaldo.</p>
+                <button disabled={cloud.status === "saving"} className="button button-secondary" type="submit">Spara budgetinställningar</button>
+              </form>
+              <section className="settings-support">
+                <h2>Säkerhetskopia</h2>
+                <p className="settings-copy">Din budget lagras i Firebase. Du kan spara en egen JSON-kopia vid behov.</p>
+                <div className="settings-actions">
+                  <button type="button" className="button button-secondary" onClick={exportBackup}>Exportera JSON</button>
+                  <button type="button" className="button button-outline" onClick={() => fileInput.current?.click()}>Importera JSON</button>
+                  <input ref={fileInput} type="file" accept=".json,application/json" className="hidden-file" onChange={importBackup} />
+                </div>
+              </section>
+              <section className="settings-support">
+                <h2>App och konto</h2>
+                <p className="settings-copy">På iPhone kan appen läggas på hemskärmen via Safari → Dela → Lägg till på hemskärmen.</p>
+                <CloudPanel cloud={cloud} />
+              </section>
+              <button type="button" className="danger-button" onClick={resetBudget}>Börja om med tom budget</button>
+            </div>
+          </details>
+        </div>}
+      </main>
     </div>
-  );
+  </div>;
 }
