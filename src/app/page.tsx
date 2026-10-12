@@ -331,7 +331,7 @@ export default function HomePage() {
           <div><div className="eyebrow">{formatDay(today).toUpperCase()}</div>
             <h1>{nav.find(item => item.id === tab)?.label}</h1>
           </div>
-          <button type="button" className="button button-secondary" onClick={() => newExpense()}>+ Ny utgift</button>
+          {tab !== "monthly" && <button type="button" className="button button-secondary" onClick={() => newExpense()}>+ Ny utgift</button>}
         </div>}
         {cloudMessage && <div className="notice notice-error" role="alert">{cloudMessage}</div>}
         {notice && <div className="notice" role="status">{notice}

@@ -72,7 +72,7 @@ test("UX: reduce status clutter, enlarge mobile controls, and explain month scro
   assert.match(page, /includes\(cloud\.message\) \? "" : cloud\.message/);
   assert.match(stylesheet, /\.icon-button\{min-width:44px;width:44px;height:44px/);
   assert.match(stylesheet, /\.mobile-nav-item\{min-height:44px\}/);
-  assert.match(monthMarkup, /Svep tabellen i sidled/);
+  assert.match(monthMarkup, /Tryck på en dag för att se eller ändra dina utgifter/);
 });
 
 
@@ -139,4 +139,13 @@ test("month ledger shows all values as no-scroll day cards on phone", () => {
   assert.match(mobile, /\.month-table \.month-details-row>td/);
   assert.match(markup, /Tryck på en dag för att se eller ändra dina utgifter/);
   assert.doesNotMatch(markup, /Svep tabellen i sidled/);
+});
+
+test("monthly view shows only ledger and month picker, without top forecast cards or new-expense button", () => {
+  const month = readFileSync(new URL("../src/components/MonthlyTable.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(month, /className="month-summary"/);
+  assert.doesNotMatch(month, /Resultat inkl\. prognos/);
+  assert.match(month, /className="month-picker"/);
+  assert.match(month, /className="month-table"/);
+  assert.match(page, /tab !== "monthly" && <button type="button" className="button button-secondary"/);
 });
