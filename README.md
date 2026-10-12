@@ -41,16 +41,17 @@ En registrerad utgift syns först när Firestore-transaktionen har slutförts. U
 
 Se [Firebase installationsguide](docs/FIREBASE_SETUP.md) för inställningar.
 
-## Vad finns?
+## Enkelt användarflöde
 
-- **Startsidan visar bara dagens resultat och ett snabbformulär för löpande utgifter.** Belopp krävs, beskrivning är valfri och utgiften bokförs på dagens datum. Dagens resultat inkluderar dagsnettot och registrerade händelser.
-- **Utveckling** är en separat meny med dagligt grundnetto, saldo, veckans och månadens resultat, prognos, graf och de senaste händelserna. Återkommande belopp kan vara per vecka, månad, kvartal eller år.
-- Registrera rörliga utgifter och extra inkomster i ören, med datum.
-- **Månadsvy:** en tabellrad för varje datum med registrerade händelser, dagsresultat och löpande budgetsaldo. Fasta inkomster och kostnader ingår automatiskt i resultatet, men räknas inte upp i tabellen eller dagdetaljerna. Bläddra mellan månader och fäll ut en dag för att se enbart manuellt registrerade händelser.
-- Beräknat budgetsaldos utveckling, dags-, vecko-, månadsresultat samt enkel 30-dagarsprognos.
-- Återkommande poster får effektiva start- och slutdatum; beloppsändring skapar ny version.
-- Firebase som enda budgetlagring, samt manuell import och export av JSON-säkerhetskopior.
-- Mobilvänligt gränssnitt. Ett personligt konto nu, datafält för flera medlemmar senare.
+**Startsidan:** Lägg till en utgift direkt med belopp och valfri beskrivning. Datum är förvalt till idag. Utgiften syns först när Firebase bekräftat sparningen.
+
+**Menyn har exakt tre val:**
+
+- **Månadsvy:** Se dagen och månaden, med registrerade utgifter, dagsresultat och beräknat budgetsaldo. Tryck på en dag för att lägga till en utgift den dagen.
+- **Dagens utgifter:** Dagens lista och totalsumma. Det går att ta bort en felregistrerad utgift.
+- **Inställningar:** Lägg till och hantera **inkomster** och **fasta kostnader** (nya poster anges per månad). Tidigare sparade intervall behålls. Fler inställningar innehåller startsaldo, JSON-säkerhetskopia, konto och avancerade åtgärder.
+
+En tydlig **+ Ny utgift**-knapp och den klickbara logotypen tar alltid tillbaka användaren till den snabba registreringen. Budgetdata lagras endast i Firebase.
 
 ### Datalagring
 

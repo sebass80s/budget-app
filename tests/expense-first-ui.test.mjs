@@ -1,0 +1,32 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { createEmptyBudget, dailyNetOre, dailyResultOre, kronaToOre } from "../src/lib/budget.ts";
+
+const page = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
+test("expense-first layout exposes precisely three destinations", () => {
+  const nav = page.match(/const nav:[\s\S]*?= \[([\s\S]*?)\];/)?.[1] ?? "";
+  assert.deepEqual([...nav.matchAll(/id: "([^"]+)"/g)].map(x => x[1]), ["monthly", "today", "settings"]);
+  assert.match(page, /Lägg till utgift/);
+  assert.match(page, /Dagens utgifter/);
+});
+test("settings host monthly income and fixed-cost forms without a separate recurring page", () => {
+  assert.match(page, /Min inkomst/);
+  assert.match(page, /Fasta kostnader/);
+  assert.match(page, /addFixed\(event, "income"\)/);
+  assert.match(page, /addFixed\(event, "expense"\)/);
+  assert.match(page, /cadence: "monthly"/);
+  assert.doesNotMatch(page, /tab === "recurring"/);
+});
+test("income and fixed cost contribute to daily budget while a purchase reduces it", () => {
+  const doc = createEmptyBudget("2026-10-12");
+  doc.recurring = [
+    { id: "salary", label: "Lön", amountOre: 3000000, cadence: "monthly", startsOn: "2026-10-12", endsOn: null, workspaceId: "personal", memberId: "owner" },
+    { id: "rent", label: "Hyra", amountOre: -800000, cadence: "monthly", startsOn: "2026-10-12", endsOn: null, workspaceId: "personal", memberId: "owner" },
+  ];
+  doc.transactions = [
+    { id: "lunch", label: "Lunch", amountOre: -12000, bookedOn: "2026-10-12", workspaceId: "personal", memberId: "owner", createdAt: "2026-10-12T18:00:00Z" },
+  ];
+  assert.equal(dailyResultOre(doc,"personal","2026-10-12"),dailyNetOre(doc,"personal","2026-10-12")-12000);
+  assert.equal(kronaToOre("120,50"),12050);
+});
