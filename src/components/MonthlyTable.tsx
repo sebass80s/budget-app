@@ -19,18 +19,16 @@ type Props = {
   document: BudgetDocument;
   workspaceId: string;
   today: string;
-  onAddTransaction: (date: string) => void;
   onEditTransaction: (transaction: Transaction, changes: ExpenseChange) => Promise<boolean>;
   saving: boolean;
 };
 
-export function MonthlyTable({ document, workspaceId, today, onAddTransaction, onEditTransaction, saving }: Props) {
+export function MonthlyTable({ document, workspaceId, today, onEditTransaction, saving }: Props) {
   const [month, setMonth] = useState(() => today.slice(0, 7));
   const [expanded, setExpanded] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   useEffect(() => { setMonth(today.slice(0, 7)); }, [today]);
   const ledger = useMemo(() => getMonthLedger(document, workspaceId, month), [document, workspaceId, month]);
-  const isForecast = ledger.end > today;
   const monthIsBeforeStart = ledger.total.balanceOre === null;
   const isCurrentMonth = month === today.slice(0, 7);
 
@@ -42,11 +40,6 @@ export function MonthlyTable({ document, workspaceId, today, onAddTransaction, o
   return (
     <section className="month-view" aria-label="Budget dag för dag">
       <div className="panel month-toolbar">
-        <div>
-          <div className="mini-caption">VARJE DAG RÄKNAS</div>
-          <h2>Dag för dag</h2>
-          <p>Se vad varje dag tillför och vad dina köp kostar.</p>
-        </div>
         <div className="month-picker">
           <button type="button" className="month-control" onClick={() => navigate(-1)} aria-label="Föregående månad">‹</button>
           <strong aria-live="polite">{formatMonth(month)}</strong>
@@ -54,26 +47,12 @@ export function MonthlyTable({ document, workspaceId, today, onAddTransaction, o
           {!isCurrentMonth && <button type="button" className="month-today" onClick={() => { setMonth(today.slice(0, 7)); setExpanded(null); setEditingId(null); }}>Denna månad</button>}
         </div>
       </div>
-      <div className="month-summary">
-        <div className="month-kpi">
-          <span>{isForecast ? "Resultat inkl. prognos" : "Månadens resultat"}</span>
-          <strong className={ledger.total.dailyResultOre >= 0 ? "positive" : "negative"}>{signed(ledger.total.dailyResultOre)}</strong>
-        </div>
-        <div className="month-kpi">
-          <span>Registrerade händelser</span>
-          <strong className={ledger.total.variableNetOre >= 0 ? "positive" : "negative"}>{signed(ledger.total.variableNetOre)}</strong>
-        </div>
-        <div className="month-kpi">
-          <span>Budgetsaldo vid månadsslut</span>
-          <strong>{monthIsBeforeStart ? "Ej startad" : amount(ledger.total.balanceOre ?? 0)}</strong>
-        </div>
-      </div>
       <div className="panel month-panel">
         <div className="month-table-intro">
           <span><i className="month-dot past" /> Genomförd dag</span>
           <span><i className="month-dot today" /> Idag</span>
-          <span><i className="month-dot future" /> Prognos</span>
-          <span className="month-mobile-hint">Tryck på datumet för detaljer. Svep tabellen i sidled för fler kolumner.</span>
+          <span><i className="month-dot future" /> Kommande dag</span>
+          <span className="month-mobile-hint">Tryck på en dag för att se eller ändra dina utgifter.</span>
         </div>
         <div className="month-scroll" role="region" aria-label={formatMonth(month) + " – budgettabell"} tabIndex={0}>
           <table className="month-table">
@@ -114,7 +93,6 @@ export function MonthlyTable({ document, workspaceId, today, onAddTransaction, o
                   open && <tr key={row.date + "-details"} className="month-details-row"><td colSpan={4}>
                     {!row.active ? <p>Budgeten börjar efter detta datum.</p> : <>
                       <div className="month-details-header"><strong>{row.date} · {detailsCount === 0 ? "Inga poster" : `${detailsCount} poster`}</strong>
-                        <button type="button" className="month-add" onClick={() => onAddTransaction(row.date)}>+ Lägg till utgift den här dagen</button>
                       </div>
                       {row.transactions.map(t =>
                         <div className="month-expense-item" key={t.id}>
@@ -144,12 +122,6 @@ export function MonthlyTable({ document, workspaceId, today, onAddTransaction, o
             </tr></tfoot>
           </table>
         </div>
-      </div>
-      <div className="bottom-hint"><span>ⓘ</span>
-        <span>{isForecast
-          ? "Framtida dagar är prognoser baserade på fasta poster och redan registrerade händelser. Ytterligare köp ingår inte."
-          : "Budgetsaldo är ett beräknat saldo, inte ditt bankkontosaldo."}
-          {" "}Fasta inkomster och kostnader ingår i dagsresultatet, men visas inte separat. Klicka på en dag för att se registrerade händelser.</span>
       </div>
     </section>
   );

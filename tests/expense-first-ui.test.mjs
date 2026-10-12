@@ -72,7 +72,7 @@ test("UX: reduce status clutter, enlarge mobile controls, and explain month scro
   assert.match(page, /includes\(cloud\.message\) \? "" : cloud\.message/);
   assert.match(stylesheet, /\.icon-button\{min-width:44px;width:44px;height:44px/);
   assert.match(stylesheet, /\.mobile-nav-item\{min-height:44px\}/);
-  assert.match(monthMarkup, /Svep tabellen i sidled/);
+  assert.match(monthMarkup, /Tryck på en dag för att se eller ändra dina utgifter/);
 });
 
 
@@ -123,4 +123,29 @@ test("mobile expense views fit the viewport instead of adding horizontal scroll"
     "do not mask the overflow by clipping the entire document");
   const month = readFileSync(new URL("../src/app/month.css", import.meta.url), "utf8");
   assert.match(month, /\.month-scroll\{max-width:100%;overflow-x:auto/);
+});
+
+test("month ledger shows all values as no-scroll day cards on phone", () => {
+  const css = readFileSync(new URL("../src/app/month.css", import.meta.url), "utf8");
+  const markup = readFileSync(new URL("../src/components/MonthlyTable.tsx", import.meta.url), "utf8");
+  const mobile = css.slice(css.indexOf("/* Phone month table:"));
+  assert.match(mobile, /@media\(max-width:760px\)/);
+  assert.match(mobile, /\.month-scroll\{overflow-x:visible;/);
+  assert.match(mobile, /\.month-table\{display:block;width:100%;min-width:0;white-space:normal\}/);
+  assert.match(mobile, /grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+  for (const label of ["Registrerat","Dagsresultat","Budgetsaldo"]) {
+    assert.ok(mobile.includes('content:"'+label+'"'));
+  }
+  assert.match(mobile, /\.month-table \.month-details-row>td/);
+  assert.match(markup, /Tryck på en dag för att se eller ändra dina utgifter/);
+  assert.doesNotMatch(markup, /Svep tabellen i sidled/);
+});
+
+test("monthly view shows only ledger and month picker, without top forecast cards or new-expense button", () => {
+  const month = readFileSync(new URL("../src/components/MonthlyTable.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(month, /className="month-summary"/);
+  assert.doesNotMatch(month, /Resultat inkl\. prognos/);
+  assert.match(month, /className="month-picker"/);
+  assert.match(month, /className="month-table"/);
+  assert.match(page, /tab !== "monthly" && <button type="button" className="button button-secondary"/);
 });

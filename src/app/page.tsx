@@ -331,7 +331,7 @@ export default function HomePage() {
           <div><div className="eyebrow">{formatDay(today).toUpperCase()}</div>
             <h1>{nav.find(item => item.id === tab)?.label}</h1>
           </div>
-          <button type="button" className="button button-secondary" onClick={() => newExpense()}>+ Ny utgift</button>
+          {tab !== "monthly" && <button type="button" className="button button-secondary" onClick={() => newExpense()}>+ Ny utgift</button>}
         </div>}
         {cloudMessage && <div className="notice notice-error" role="alert">{cloudMessage}</div>}
         {notice && <div className="notice" role="status">{notice}
@@ -411,7 +411,7 @@ export default function HomePage() {
         </div>}
 
         {tab === "monthly" && <MonthlyTable document={document} workspaceId={workspaceId} today={today}
-          onAddTransaction={date => newExpense(date)} onEditTransaction={saveExpenseEdit}
+          onEditTransaction={saveExpenseEdit}
           saving={cloud.status === "saving"} />}
 
         {tab === "settings" && <div className="settings-stack">

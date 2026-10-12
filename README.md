@@ -51,7 +51,7 @@ När guiden slutförs eller hoppas över markeras den färdig i Firebase. Den vi
 
 ## Mobilvy
 
-På telefon ryms alla tre menyval på en rad eller radbryts inom sina respektive fält. **Dagens utgifter** och **+ Ny utgift** ska aldrig orsaka horisontell sidscroll, inte heller när belopp eller utgiftsbeskrivningar är långa. Redigeringsfält och åtgärdsknappar anpassas till smala skärmar. **Månadsvy** har fortfarande avsiktlig sidscroll **inne i själva tabellen**, inte på hela sidan.
+På telefon ryms alla tre menyval på en rad eller radbryts inom sina respektive fält. **Dagens utgifter** och **+ Ny utgift** ska aldrig orsaka horisontell sidscroll, inte heller när belopp eller utgiftsbeskrivningar är långa. Redigeringsfält och åtgärdsknappar anpassas till smala skärmar. **Månadsvy** visar fullbredda dagkort på mobil utan horisontell scroll. Alla belopp och redigeringsmöjligheter är kvar. På dator visas den vanliga tabellen.
 
 ## Enkelt användarflöde
 
@@ -59,7 +59,7 @@ På telefon ryms alla tre menyval på en rad eller radbryts inom sina respektive
 
 **Menyn har exakt tre val:**
 
-- **Månadsvy:** Se dagen och månaden, med registrerade utgifter, dagsresultat och beräknat budgetsaldo. Nedåtpilen sitter direkt intill datumet. Öppna en dag för att lägga till eller **ändra en tidigare utgift** utan att lämna månadsvyn.
+- **Månadsvy:** Visar bara månadsväljaren och dagtabellen, utan prognosrutor eller separat knapp för ny utgift ovanför. Nedåtpilen sitter direkt intill datumet. Öppna en dag för att se eller **ändra en tidigare utgift** utan att lämna månadsvyn.
 - **Dagens utgifter:** Dagens lista och totalsumma. Tryck **Ändra** på en post för att rätta belopp, beskrivning eller datum direkt i listan, eller ta bort en felregistrering.
 - **Inställningar:** Lägg till och hantera **inkomster** och **fasta kostnader** (nya poster anges per månad). Tidigare sparade intervall behålls. Fler inställningar innehåller startsaldo, JSON-säkerhetskopia, konto och avancerade åtgärder.
 
