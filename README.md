@@ -43,11 +43,11 @@ Se [Firebase installationsguide](docs/FIREBASE_SETUP.md) för inställningar.
 
 ## Enkelt användarflöde
 
-**Startsidan:** Lägg till en utgift direkt med belopp och valfri beskrivning. Datum är förvalt till idag. Utgiften syns först när Firebase bekräftat sparningen.
+**Startsidan:** Dagens utgifter öppnas automatiskt efter inloggning. En tydlig **+ Ny utgift**-knapp öppnar ett enkelt formulär med belopp, valfri beskrivning och datum förvalt till idag. Utgiften syns först när Firebase bekräftat sparningen.
 
 **Menyn har exakt tre val:**
 
-- **Månadsvy:** Se dagen och månaden, med registrerade utgifter, dagsresultat och beräknat budgetsaldo. Tryck på en dag för att lägga till en utgift den dagen.
+- **Månadsvy:** Se dagen och månaden, med registrerade utgifter, dagsresultat och beräknat budgetsaldo. Nedåtpilen sitter direkt intill datumet, och datumet går att trycka på för att visa detaljer eller lägga till en utgift den dagen.
 - **Dagens utgifter:** Dagens lista och totalsumma. Det går att ta bort en felregistrerad utgift.
 - **Inställningar:** Lägg till och hantera **inkomster** och **fasta kostnader** (nya poster anges per månad). Tidigare sparade intervall behålls. Fler inställningar innehåller startsaldo, JSON-säkerhetskopia, konto och avancerade åtgärder.
 

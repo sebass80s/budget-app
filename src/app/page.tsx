@@ -33,7 +33,7 @@ export default function HomePage() {
   const document = cloud.budget;
   const workspace = document?.workspaces[0];
   const workspaceId = workspace?.id ?? "personal";
-  const [tab, setTab] = useState<Tab>("new");
+  const [tab, setTab] = useState<Tab>("today");
   const [today, setToday] = useState("2026-10-12");
   const [expenseDay, setExpenseDay] = useState("2026-10-12");
   const [amount, setAmount] = useState("");

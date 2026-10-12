@@ -93,12 +93,12 @@ export function MonthlyTable({ document, workspaceId, today, onAddTransaction }:
                       <button type="button" className="month-day-button" aria-expanded={open}
                         aria-label={`${formatDay(row.date)}: ${open ? "dölj" : "visa"} detaljer`}
                         onClick={() => setExpanded(open ? null : row.date)}>
+                        <span className="day-chevron" aria-hidden="true">{open ? "⌃" : "⌄"}</span>
                         <span className="month-day-label">
                           <span>{formatDay(row.date)}</span>
                           {isToday && <span className="day-pill">Idag</span>}
                           {future && <span className="day-future">Plan</span>}
                         </span>
-                        <span className="day-chevron" aria-hidden="true">{open ? "⌃" : "⌄"}</span>
                       </button>
                     </th>
                     <td className={`num ${row.variableNetOre >= 0 ? "positive" : "negative"}`}>{row.active ? signed(row.variableNetOre) : "–"}</td>
