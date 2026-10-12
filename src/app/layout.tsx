@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./month.css";
 
 export const metadata: Metadata = {
   title: "Budget App | Ett drag i taget",

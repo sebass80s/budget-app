@@ -6,6 +6,7 @@
 - Virtual balance = opening virtual balance at the anchor date + each day's daily net + manual transactions.
 - Virtual balance is *not* a bank balance. No bank feeds in the MVP.
 - Future projections assume no future discretionary spending. They are not bank liquidity forecasts.
+- The monthly ledger shows one row per calendar day, including future days as projections. Monthly totals respect the workspace start date; days before the anchor show no balance. Expand a day to inspect individual recurring contributions and recorded transactions.
 - Amounts are integer öre. Dates are local calendar day strings (YYYY-MM-DD); iteration is timezone-independent UTC math.
 - Smoothed daily rate: monthly amount × 12 / 365.2425; weekly amount / 7; quarterly ×4 / 365.2425; yearly /365.2425. Round to nearest öre per recurring rule. This is not an exact cash-date simulation.
 - Expiring recurring entries stay in the dataset. Edit recurring amounts through effective-dated revisions, not retrospective overwrites.
