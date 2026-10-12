@@ -17,6 +17,14 @@
 - A future shared-household mode can support several members and personal/shared accounts without migrating ownership assumptions.
 - Document `schemaVersion` is required for data migrations.
 
+## Delivery
+- Source control, testing, and production deployment stay entirely on GitHub; users do not need a local checkout.
+- Pull requests run `verify.yml`: type checks, unit tests and export build.
+- Main branch runs `deploy-pages.yml`: tests, static Next.js export and publish to GitHub Pages.
+- GitHub Pages requires a one-time repo Settings → Pages → Build and deployment → Source: GitHub Actions selection.
+- Published URL: https://sebass80s.github.io/budget-app/ once Pages is enabled.
+- GitHub Pages is a static website, not a remote database. Server-only Next.js features are deliberately unavailable.
+
 ## Data, privacy and limitations
 - MVP stores local data in **this browser's localStorage**, not GitHub or a server.
 - No accounts, authentication, real synchronization, sharing or encryption in MVP.
