@@ -38,6 +38,9 @@ export type BudgetDocument = {
   members: Member[];
   recurring: Recurring[];
   transactions: Transaction[];
+  /** Only budgets created after onboarding was introduced contain this field.
+   * Missing field means an existing account and must not start onboarding. */
+  onboarding?: { version: 1; completed: boolean };
 };
 
 const DAY_MS = 86_400_000;
@@ -149,6 +152,9 @@ export function createDemoBudget(today: string): BudgetDocument {
 export function validDocument(value: unknown): value is BudgetDocument {
   if (!value || typeof value !== "object") return false;
   const d = value as Partial<BudgetDocument>;
+  const onboarding = d.onboarding;
+  if (onboarding !== undefined &&
+      (!onboarding || onboarding.version !== 1 || typeof onboarding.completed !== "boolean")) return false;
   if (d.schemaVersion !== 1 || !Array.isArray(d.workspaces) || !Array.isArray(d.members) ||
     !Array.isArray(d.recurring) || !Array.isArray(d.transactions) || typeof d.demo !== "boolean") return false;
   try {

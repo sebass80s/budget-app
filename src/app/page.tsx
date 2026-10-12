@@ -3,6 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CloudPanel } from "@/components/CloudPanel";
 import { ExpenseEditor } from "@/components/ExpenseEditor";
+import { Onboarding } from "@/components/Onboarding";
+import {
+  addSetupEntry, finishOnboarding, needsOnboarding, type SetupKind,
+} from "@/lib/onboarding";
 import { type ExpenseChange, updateExpense } from "@/lib/expense-edits";
 import { MonthlyTable } from "@/components/MonthlyTable";
 import { useCloudSync } from "@/hooks/useCloudSync";
@@ -42,6 +46,7 @@ export default function HomePage() {
   const [description, setDescription] = useState("");
   const [notice, setNotice] = useState("");
   const [editingTodayId, setEditingTodayId] = useState<string | null>(null);
+  const [showSetupGuide, setShowSetupGuide] = useState(false);
   const [incomeLabel, setIncomeLabel] = useState("Lön");
   const [incomeAmount, setIncomeAmount] = useState("");
   const [fixedLabel, setFixedLabel] = useState("");
@@ -122,6 +127,25 @@ export default function HomePage() {
       setDescription("");
       setNotice("Utgiften är sparad i Firebase.");
     }
+  }
+
+  async function saveSetupEntry(kind: SetupKind, label: string, amount: string): Promise<boolean> {
+    const id = crypto.randomUUID();
+    const day = todayLocal();
+    return cloud.saveBudget(doc => addSetupEntry(doc, { kind, label, amount, day, id }));
+  }
+
+  async function completeSetup(): Promise<boolean> {
+    // Only new accounts have an unfinished Firebase onboarding marker.
+    // Manually revisiting the guide never modifies existing account metadata.
+    if (document && needsOnboarding(document)) {
+      const saved = await cloud.saveBudget(finishOnboarding);
+      if (!saved) return false;
+    }
+    setShowSetupGuide(false);
+    setNotice("");
+    setTab("new");
+    return true;
   }
 
   async function addFixed(event: React.FormEvent<HTMLFormElement>, kind: FixedKind) {
@@ -268,6 +292,11 @@ export default function HomePage() {
   if (!document || !workspace) return <main className="loading">Hämtar budget från Firebase …</main>;
   const cloudMessage = ["Sparat i Firebase.", "Uppdaterad från Firebase.", "Sparar i Firebase …"]
     .includes(cloud.message) ? "" : cloud.message;
+  if (needsOnboarding(document) || showSetupGuide) {
+    return <Onboarding document={document} saving={cloud.status === "saving"} message={cloud.message}
+      onSaveEntry={saveSetupEntry} onFinish={completeSetup}
+      onClose={needsOnboarding(document) ? undefined : () => setShowSetupGuide(false)} />;
+  }
 
   return <div className="shell">
     <aside className="sidebar">
@@ -416,6 +445,13 @@ export default function HomePage() {
           <details className="panel settings-more">
             <summary>Fler inställningar</summary>
             <div className="settings-more-content">
+              <section className="settings-support">
+                <h2>Kom igång-guiden</h2>
+                <p className="settings-copy">Vill du se introduktionen igen? Dina befintliga inkomster och kostnader finns kvar.</p>
+                <button className="button button-outline" type="button" onClick={() => setShowSetupGuide(true)}>
+                  Visa introduktionen
+                </button>
+              </section>
               <form className="form" onSubmit={saveWorkspace}>
                 <h2>Budgetens startsaldo</h2>
                 <label>Namn på ekonomin <input required maxLength={70} value={workspaceName} onChange={e => setWorkspaceName(e.target.value)} /></label>

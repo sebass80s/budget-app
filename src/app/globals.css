@@ -267,3 +267,45 @@ h2{font-size:18px;letter-spacing:-.5px;line-height:1.3;margin:6px 0 0}
   .expense-edit-actions .button{flex:1 1 130px}
   .expense-item>.list-row{align-items:flex-start}
 }
+
+
+/* Four short steps for brand-new Firebase budgets; no onboarding for legacy accounts. */
+.setup-screen{min-height:100dvh;background:var(--bg);display:grid;place-items:center;padding:26px 16px}
+.setup-card{width:min(100%,540px);background:white;border:1px solid var(--line);border-radius:23px;box-shadow:0 16px 46px rgba(16,47,44,.07);padding:27px 32px 23px}
+.setup-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.setup-brand{display:flex;align-items:center;gap:10px}
+.setup-brand .brand-mark{width:32px;height:32px;font-size:20px}
+.setup-brand strong{font-size:22px;letter-spacing:-1px}
+.setup-brand strong span{color:var(--green)}
+.setup-step{color:#7b8f8b;font-size:12px;font-weight:750}
+.setup-progress{margin:18px 0 27px;height:5px;border-radius:99px;background:#e3eeeb;overflow:hidden}
+.setup-progress>span{display:block;height:100%;border-radius:99px;background:var(--green);transition:width .2s}
+.setup-content{display:grid;gap:15px}
+.setup-emoji{font-size:40px;line-height:1.2}
+.setup-content h1{font-size:clamp(27px,4vw,35px);margin:0;letter-spacing:-1px}
+.setup-lead{color:#718582;font-size:14px;line-height:1.65;margin:0 0 3px}
+.setup-steps-summary{background:#eff7f2;border-radius:13px;display:grid;gap:15px;padding:20px;color:#33564c;font-size:13px;font-weight:650}
+.setup-steps-summary div{display:flex;align-items:center;gap:11px}
+.setup-steps-summary div span{display:inline-grid;place-items:center;min-width:25px;height:25px;background:#c9eddb;color:#106b54;border-radius:50%;font-size:12px;font-weight:850}
+.setup-primary{min-height:50px;width:100%;font-size:14px;margin-top:4px}
+.setup-text-button,.setup-link{border:0;background:none;color:#398372;min-height:44px;font-size:13px;font-weight:750;padding:8px;cursor:pointer}
+.setup-text-button{justify-self:center}
+.setup-form{display:grid;gap:14px}
+.setup-form label{display:grid;gap:7px;color:#496963;font-size:12px;font-weight:750}
+.setup-form input{width:100%;min-height:50px;border:1px solid #d4e3dd;border-radius:10px;background:#fff;padding:10px 13px;font-size:16px;color:var(--ink)}
+.setup-form input:focus-visible{outline:3px solid #9dd9c5;outline-offset:1px}
+.setup-existing{border:1px solid #dbece4;background:#f4faf7;border-radius:12px;padding:14px;display:grid;gap:9px;font-size:13px;color:#4b6860;max-height:180px;overflow:auto}
+.setup-existing>strong{font-size:12px;color:#71837c}
+.setup-existing>div{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.setup-existing>div strong{white-space:nowrap}
+.setup-footer{border-top:1px solid #e9f1ed;margin-top:22px;padding-top:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.setup-footer span{color:#9aa8a4;font-size:11px;max-width:270px}
+.setup-error{margin:14px 0 0;padding:12px;background:#fff1ef;border:1px solid #f0c4ba;border-radius:10px;color:#924438;font-size:12px}
+.setup-primary:disabled,.setup-text-button:disabled,.setup-link:disabled{opacity:.55;cursor:wait}
+@media(max-width:760px){
+  .setup-screen{display:block;padding:14px 13px 28px}
+  .setup-card{padding:22px 20px 19px;border-radius:18px;margin:0 auto}
+  .setup-progress{margin-bottom:25px}
+  .setup-content{gap:14px}
+  .setup-footer span{max-width:180px}
+}
