@@ -13,7 +13,6 @@ import {
 
 type Tab = "overview" | "insights" | "monthly" | "transactions" | "recurring" | "settings";
 type EntryType = "expense" | "income";
-const STORAGE_KEY = "budget-app:v1";
 const currency = new Intl.NumberFormat("sv-SE", { style: "currency", currency: "SEK", maximumFractionDigits: 0 });
 const asMoney = (ore: number) => currency.format(ore / 100);
 const signedMoney = (ore: number) => (ore > 0 ? "+" : "") + asMoney(ore);
@@ -79,8 +78,6 @@ function Trend({ document, workspaceId, today }: { document: BudgetDocument; wor
 }
 
 export default function HomePage() {
-  const [document, setDocument] = useState<BudgetDocument | null>(null);
-  const [hydrated, setHydrated] = useState(false);
   const [tab, setTab] = useState<Tab>("overview");
   const [currentDay, setCurrentDay] = useState("2026-10-12");
   const [notice, setNotice] = useState("");
@@ -104,27 +101,9 @@ export default function HomePage() {
     setCurrentDay(today);
     setTxDate(today);
     setRecStart(today);
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      try {
-        const parsed: unknown = JSON.parse(raw);
-        if (validDocument(parsed) && !parsed.demo) setDocument(parsed);
-        else if (!validDocument(parsed)) {
-          window.localStorage.setItem("budget-app:legacy-unreadable-backup", raw);
-          setNotice("En äldre lokal kopia hade okänt format och har sparats för återställning.");
-        }
-      } catch {
-        // Keep the unparseable original before a new signed-in budget is saved.
-        window.localStorage.setItem("budget-app:legacy-unreadable-backup", raw);
-        setNotice("En äldre lokal budget gick inte att läsa. Originalet har bevarats på enheten.");
-      }
-    }
-    setHydrated(true);
   }, []);
-  useEffect(() => {
-    if (document && !document.demo) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(document));
-  }, [document]);
-  const cloud = useCloudSync(document, setDocument);
+  const cloud = useCloudSync();
+  const document = cloud.budget;
   const workspace = document?.workspaces[0];
   const workspaceId = workspace?.id ?? "personal";
   const currentBalance = document ? virtualBalanceOre(document, workspaceId, currentDay) : 0;
@@ -138,10 +117,10 @@ export default function HomePage() {
   const transactions = useMemo(() => (document?.transactions ?? []).filter(t => t.workspaceId === workspaceId)
     .sort((a, b) => b.bookedOn.localeCompare(a.bookedOn) || b.createdAt.localeCompare(a.createdAt)), [document, workspaceId]);
 
-  function mutate(update: (value: BudgetDocument) => BudgetDocument) {
-    setDocument(prev => prev ? update(prev) : prev);
+  async function mutate(update: (value: BudgetDocument) => BudgetDocument): Promise<boolean> {
+    return cloud.saveBudget(update);
   }
-  function addQuickExpense(event: React.FormEvent<HTMLFormElement>) {
+  async function addQuickExpense(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const amount = kronaToOre(quickAmount);
     if (!document || !amount) {
@@ -157,12 +136,13 @@ export default function HomePage() {
       bookedOn: currentDay,
       createdAt: new Date().toISOString(),
     };
-    mutate(d => ({ ...d, transactions: [...d.transactions, row] }));
-    setQuickAmount("");
-    setQuickLabel("");
-    setNotice(`Utgift på ${asMoney(amount)} registrerad.`);
+    if (await mutate(d => ({ ...d, transactions: [...d.transactions, row] }))) {
+      setQuickAmount("");
+      setQuickLabel("");
+      setNotice(`Utgift på ${asMoney(amount)} sparad i Firebase.`);
+    }
   }
-  function addTransaction(event: React.FormEvent<HTMLFormElement>) {
+  async function addTransaction(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const amount = kronaToOre(txAmount);
     if (!document || !amount || !txLabel.trim() || !txDate) {
@@ -173,10 +153,11 @@ export default function HomePage() {
       label: txLabel.trim(), amountOre: txType === "expense" ? -amount : amount,
       bookedOn: txDate, createdAt: new Date().toISOString(),
     };
-    mutate(d => ({ ...d, transactions: [...d.transactions, row] }));
-    setTxLabel(""); setTxAmount(""); setNotice("Händelsen har registrerats.");
+    if (await mutate(d => ({ ...d, transactions: [...d.transactions, row] }))) {
+      setTxLabel(""); setTxAmount(""); setNotice("Händelsen har sparats i Firebase.");
+    }
   }
-  function addRecurring(event: React.FormEvent<HTMLFormElement>) {
+  async function addRecurring(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const amount = kronaToOre(recAmount);
     if (!document || !amount || !recLabel.trim() || !recStart) {
@@ -187,8 +168,9 @@ export default function HomePage() {
       label: recLabel.trim(), amountOre: recType === "expense" ? -amount : amount,
       cadence: recCadence, startsOn: recStart, endsOn: null,
     };
-    mutate(d => ({ ...d, recurring: [...d.recurring, row] }));
-    setRecLabel(""); setRecAmount(""); setNotice("Den återkommande posten har lagts till.");
+    if (await mutate(d => ({ ...d, recurring: [...d.recurring, row] }))) {
+      setRecLabel(""); setRecAmount(""); setNotice("Den återkommande posten har sparats i Firebase.");
+    }
   }
   function changeRecurring(item: Recurring) {
     const raw = window.prompt("Nytt belopp i kronor (ange utan minustecken). Ändringen gäller från idag.", String(Math.abs(item.amountOre) / 100));
@@ -196,26 +178,28 @@ export default function HomePage() {
     const ore = kronaToOre(raw);
     if (!ore) { setNotice("Ogiltigt belopp."); return; }
     if (item.startsOn > currentDay) { setNotice("Denna post börjar i framtiden. Avsluta den och skapa en ny i stället."); return; }
-    mutate(d => replaceRecurringFrom(d, item.id, currentDay, Math.sign(item.amountOre) * ore));
-    setNotice("Ny version sparad. Historiken har behållits.");
+    void mutate(d => replaceRecurringFrom(d, item.id, currentDay, Math.sign(item.amountOre) * ore))
+      .then(saved => { if (saved) setNotice("Ny version sparad i Firebase. Historiken är kvar."); });
   }
   function endRecurring(item: Recurring) {
     if (!window.confirm("Avsluta " + item.label + "? Tidigare historik bevaras.")) return;
-    mutate(d => ({ ...d, recurring: item.startsOn >= currentDay
+    void mutate(d => ({ ...d, recurring: item.startsOn >= currentDay
       ? d.recurring.filter(r => r.id !== item.id)
-      : d.recurring.map(r => r.id === item.id ? { ...r, endsOn: addDays(currentDay, -1) } : r) }));
-    setNotice("Posten har avslutats.");
+      : d.recurring.map(r => r.id === item.id ? { ...r, endsOn: addDays(currentDay, -1) } : r) }))
+      .then(saved => { if (saved) setNotice("Posten har avslutats i Firebase."); });
   }
   function deleteTransaction(id: string) {
     if (!window.confirm("Ta bort händelsen?")) return;
-    mutate(d => ({ ...d, transactions: d.transactions.filter(t => t.id !== id) }));
+    void mutate(d => ({ ...d, transactions: d.transactions.filter(t => t.id !== id) }))
+      .then(saved => { if (saved) setNotice("Händelsen har tagits bort i Firebase."); });
   }
-  function resetBudget() {
-    if (!window.confirm("Börja om med en helt tom budget? Det ersätter även molnbudgeten och kan inte ångras. Exportera en backup först.")) return;
+  async function resetBudget() {
+    if (!window.confirm("Börja om med en helt tom budget i Firebase? Det kan inte ångras. Exportera en backup först.")) return;
     const empty = createEmptyBudget(currentDay);
-    setDocument(empty);
-    setOpening("0"); setWorkspaceName("Min ekonomi");
-    setNotice("Nu har du en tom, personlig budget.");
+    if (await cloud.saveBudget(() => empty)) {
+      setOpening("0"); setWorkspaceName("Min ekonomi");
+      setNotice("En ny tom budget har sparats i Firebase.");
+    }
   }
   function exportBackup() {
     if (!document) return;
@@ -231,14 +215,13 @@ export default function HomePage() {
     if (!file) return;
     try {
       const parsed: unknown = JSON.parse(await file.text());
-      if (!validDocument(parsed)) throw new Error("Ogiltigt backupformat");
-      if (!window.confirm(cloud.active ? "Ersätta den nuvarande budgeten och uppdatera molnkopian med säkerhetskopian?" : "Ersätta den nuvarande budgeten med säkerhetskopian?")) return;
-      setDocument(parsed);
-      setNotice("Säkerhetskopian har återställts.");
+      if (!validDocument(parsed) || parsed.demo) throw new Error("Ogiltigt backupformat");
+      if (!window.confirm("Ersätta din befintliga molnbudget med denna säkerhetskopia? Exportera din nuvarande budget först.")) return;
+      if (await cloud.saveBudget(() => parsed)) setNotice("Säkerhetskopian har återställts i Firebase.");
     } catch { setNotice("Filen är inte en giltig Budget App-säkerhetskopia."); }
     finally { event.target.value = ""; }
   }
-  function saveWorkspace(event: React.FormEvent<HTMLFormElement>) {
+  async function saveWorkspace(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const normalized = opening.trim().replace(/\s/g, "").replace(",", ".");
     if (!/^-?\d+(\.\d{1,2})?$/.test(normalized) || !workspaceName.trim()) {
@@ -246,9 +229,10 @@ export default function HomePage() {
     }
     const ore = Math.round(Number(normalized) * 100);
     if (!Number.isSafeInteger(ore)) { setNotice("För stort belopp."); return; }
-    mutate(d => ({ ...d, workspaces: d.workspaces.map(w => w.id === workspaceId
-      ? { ...w, name: workspaceName.trim(), openingBalanceOre: ore } : w) }));
-    setNotice("Inställningarna har sparats.");
+    if (await mutate(d => ({ ...d, workspaces: d.workspaces.map(w => w.id === workspaceId
+      ? { ...w, name: workspaceName.trim(), openingBalanceOre: ore } : w) }))) {
+      setNotice("Inställningarna har sparats i Firebase.");
+    }
   }
   useEffect(() => {
     if (workspace) {
@@ -257,15 +241,15 @@ export default function HomePage() {
     }
   }, [workspace?.id, workspace?.openingBalanceOre, workspace?.name]);
 
-  if (!hydrated || cloud.status === "loading") return <main className="loading">Öppnar Budget App …</main>;
+  if (cloud.status === "loading") return <main className="loading">Hämtar budget från Firebase …</main>;
   // Keep the budget screen private until authentication and cloud connection are ready.
-  if (cloud.status !== "active" && cloud.status !== "saving" && cloud.status !== "offline") {
+  if (cloud.status !== "active" && cloud.status !== "saving") {
     return <main className="auth-screen">
       <div className="auth-layout">
         <div className="auth-intro">
           <div className="brand"><div className="brand-mark">◈</div><div><strong>budget<span>.</span></strong><small>ETT DRAG I TAGET</small></div></div>
           <h1>Din ekonomi, samlad på ett ställe.</h1>
-          <p>Logga in för att fortsätta med din budget, oavsett vilken enhet du använder.</p>
+          <p>Din budget finns i Firebase och är densamma på alla dina enheter.</p>
         </div>
         <CloudPanel cloud={cloud} mode="welcome" />
       </div>
@@ -283,10 +267,10 @@ export default function HomePage() {
             <span className="nav-symbol">{item.icon}</span>{item.label}
           </button>)}
         </nav>
-        <div className="sidebar-bottom"><div className="sidebar-avatar">J</div><div><strong>Personlig budget</strong><small>{cloud.active ? "Molnsynkronisering aktiv" : "Lokal budget"}</small></div></div>
+        <div className="sidebar-bottom"><div className="sidebar-avatar">J</div><div><strong>Personlig budget</strong><small>{cloud.status === "saving" ? "Sparar i Firebase" : "Molnbudget"}</small></div></div>
       </aside>
       <div className="main-shell">
-        <header className="mobile-head"><div className="brand"><div className="brand-mark">◈</div><strong>budget<span>.</span></strong></div><span className="mobile-lock">{cloud.active ? "☁ Molnansluten" : "⌁ Lokal data"}</span></header>
+        <header className="mobile-head"><div className="brand"><div className="brand-mark">◈</div><strong>budget<span>.</span></strong></div><span className="mobile-lock">{cloud.status === "saving" ? "☁ Sparar …" : "☁ Firebase"}</span></header>
         <nav className="mobile-nav" aria-label="Huvudmeny">
           {nav.map(item => <button type="button" key={item.id} onClick={() => { setTab(item.id); setNotice(""); }}
             className={tab === item.id ? "mobile-nav-item selected" : "mobile-nav-item"}>{item.label}</button>)}
@@ -300,8 +284,9 @@ export default function HomePage() {
                 tab === "transactions" ? "Registrera det som händer mellan löningarna." :
                 tab === "recurring" ? "Grunden som driver ditt dagliga ekonomiska netto." :
                 "Din data, din kontroll."}</p></div>
-            <div className="top-actions"><span className="privacy-pill">{cloud.active ? "● Molnsynk aktiv" : "● Synkning pausad"}</span></div>
+            <div className="top-actions"><span className="privacy-pill">{cloud.status === "saving" ? "● Sparar i Firebase …" : "● Sparad i Firebase"}</span></div>
           </div>}
+          {cloud.message && <div className="notice" role="status">{cloud.message}</div>}
           {notice && <div className="notice" role="status">{notice}<button type="button" onClick={() => setNotice("")} aria-label="Stäng meddelande">×</button></div>}
           {tab === "overview" && <div className="simple-home">
             <section className="hero-main focused-hero" aria-label="Dagens resultat">
@@ -322,7 +307,7 @@ export default function HomePage() {
                     placeholder="Till exempel lunch" value={quickLabel}
                     onChange={event => setQuickLabel(event.target.value)} />
                 </label>
-                <button type="submit" className="button button-primary quick-submit">+ Lägg till utgift</button>
+                <button disabled={cloud.status === "saving"} type="submit" className="button button-primary quick-submit">{cloud.status === "saving" ? "Sparar …" : "+ Lägg till utgift"}</button>
               </form>
             </section>
           </div>}
@@ -410,7 +395,7 @@ export default function HomePage() {
               </form>
             </section>
             <section className="panel form-panel"><div className="mini-caption">SÄKERHETSKOPIOR</div><h2>Data och säkerhetskopior</h2>
-              <p className="settings-copy">{cloud.active ? "Budgeten sparas i molnet när uppkoppling finns, och en lokal kopia behålls på enheten." : "Budgeten sparas lokalt tills du anslutit molnlagring. Ingen information skickas till GitHub."}</p>
+              <p className="settings-copy">"Budgeten lagras endast i Firebase. Ändringar syns när servern har bekräftat att de sparats."</p>
               <div className="settings-actions"><button type="button" className="button button-secondary" onClick={exportBackup}>↓ Exportera JSON-backup</button>
                 <button type="button" className="button button-outline" onClick={() => fileRef.current?.click()}>↑ Importera backup</button>
                 <input ref={fileRef} type="file" accept=".json,application/json" className="hidden-file" onChange={importBackup} /></div>
