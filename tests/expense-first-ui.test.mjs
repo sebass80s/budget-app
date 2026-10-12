@@ -124,3 +124,19 @@ test("mobile expense views fit the viewport instead of adding horizontal scroll"
   const month = readFileSync(new URL("../src/app/month.css", import.meta.url), "utf8");
   assert.match(month, /\.month-scroll\{max-width:100%;overflow-x:auto/);
 });
+
+test("month ledger shows all values as no-scroll day cards on phone", () => {
+  const css = readFileSync(new URL("../src/app/month.css", import.meta.url), "utf8");
+  const markup = readFileSync(new URL("../src/components/MonthlyTable.tsx", import.meta.url), "utf8");
+  const mobile = css.slice(css.indexOf("/* Phone month table:"));
+  assert.match(mobile, /@media\(max-width:760px\)/);
+  assert.match(mobile, /\.month-scroll\{overflow-x:visible;/);
+  assert.match(mobile, /\.month-table\{display:block;width:100%;min-width:0;white-space:normal\}/);
+  assert.match(mobile, /grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+  for (const label of ["Registrerat","Dagsresultat","Budgetsaldo"]) {
+    assert.ok(mobile.includes('content:"'+label+'"'));
+  }
+  assert.match(mobile, /\.month-table \.month-details-row>td/);
+  assert.match(markup, /Tryck på en dag för att se eller ändra dina utgifter/);
+  assert.doesNotMatch(markup, /Svep tabellen i sidled/);
+});

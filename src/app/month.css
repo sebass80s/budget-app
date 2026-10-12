@@ -69,3 +69,30 @@
   .month-detail-actions{gap:5px}
   .month-detail-actions .expense-edit-trigger{min-height:44px}
 }
+
+/* Phone month table: stacked day cards, all figures visible. */
+@media(max-width:760px){
+  .month-view,.month-panel,.month-scroll{min-width:0;max-width:100%;width:100%}
+  .month-scroll{overflow-x:visible;overscroll-behavior-inline:auto}
+  .month-table{display:block;width:100%;min-width:0;white-space:normal}
+  .month-table thead{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+  .month-table tbody,.month-table tfoot{display:block;width:100%}
+  .month-table .month-data-row,.month-table tfoot tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;width:100%;margin:0 0 10px;border:1px solid #e1ebe6;border-radius:12px;overflow:hidden;background:#fff}
+  .month-table .month-data-row.is-today{background:#edfaf4;border-color:#b7e8d2}
+  .month-table .month-data-row.is-future{background:#fbfcfc}
+  .month-table .month-data-row.is-expanded{background:#f0f8f5}
+  .month-table .month-data-row th,.month-table .month-data-row td,.month-table tfoot th,.month-table tfoot td{display:block;width:auto;min-width:0;padding:10px 12px;white-space:normal;border-bottom:0}
+  .month-table .month-data-row th:first-child,.month-table tfoot th:first-child{grid-column:1/-1;width:auto;border-bottom:1px solid #e6efea;text-align:left}
+  .month-day-button{min-height:44px;width:100%;font-size:13px}
+  .month-table .month-data-row td,.month-table tfoot td{font-size:14px;font-weight:750;overflow-wrap:anywhere;text-align:left}
+  .month-table .month-data-row td::before,.month-table tfoot td::before{display:block;font-size:10px;font-weight:650;color:#718782;margin-bottom:5px}
+  .month-table .month-data-row td:nth-child(2)::before,.month-table tfoot td:nth-child(2)::before{content:"Registrerat"}
+  .month-table .month-data-row td:nth-child(3)::before,.month-table tfoot td:nth-child(3)::before{content:"Dagsresultat"}
+  .month-table .month-data-row td:nth-child(4),.month-table tfoot td:nth-child(4){grid-column:1/-1;padding-top:7px;border-top:1px solid #eff4f1}
+  .month-table .month-data-row td:nth-child(4)::before,.month-table tfoot td:nth-child(4)::before{content:"Budgetsaldo"}
+  .month-table .month-details-row{display:block;width:100%;margin:-7px 0 12px}
+  .month-table .month-details-row>td{display:block;box-sizing:border-box;width:100%;min-width:0;padding:15px 12px;border:1px solid #dcece4;border-radius:0 0 12px 12px;white-space:normal;overflow-wrap:anywhere}
+  .month-table .month-details-header,.month-table .month-detail{min-width:0}
+  .month-table tfoot tr{margin-top:16px;background:#f3f8f5}
+  .month-table tfoot th,.month-table tfoot td{border-top:0;background:transparent;padding-top:10px;padding-bottom:10px}
+}

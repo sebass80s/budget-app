@@ -51,7 +51,7 @@ När guiden slutförs eller hoppas över markeras den färdig i Firebase. Den vi
 
 ## Mobilvy
 
-På telefon ryms alla tre menyval på en rad eller radbryts inom sina respektive fält. **Dagens utgifter** och **+ Ny utgift** ska aldrig orsaka horisontell sidscroll, inte heller när belopp eller utgiftsbeskrivningar är långa. Redigeringsfält och åtgärdsknappar anpassas till smala skärmar. **Månadsvy** har fortfarande avsiktlig sidscroll **inne i själva tabellen**, inte på hela sidan.
+På telefon ryms alla tre menyval på en rad eller radbryts inom sina respektive fält. **Dagens utgifter** och **+ Ny utgift** ska aldrig orsaka horisontell sidscroll, inte heller när belopp eller utgiftsbeskrivningar är långa. Redigeringsfält och åtgärdsknappar anpassas till smala skärmar. **Månadsvy** visar fullbredda dagkort på mobil utan horisontell scroll. Alla belopp och redigeringsmöjligheter är kvar. På dator visas den vanliga tabellen.
 
 ## Enkelt användarflöde
 
