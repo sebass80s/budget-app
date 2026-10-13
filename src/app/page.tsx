@@ -12,7 +12,7 @@ import { MonthlyTable } from "@/components/MonthlyTable";
 import { useCloudSync } from "@/hooks/useCloudSync";
 import {
   type BudgetDocument, type Cadence, type Recurring, type Transaction,
-  addDays, createEmptyBudget, dailyResultOre, kronaToOre, nextMonth, rangeResultOre, replaceRecurringFrom, todayLocal,
+  addDays, createEmptyBudget, dailyResultOre, kronaToOre, nextMonth, remainingMonthBudgetOre, replaceRecurringFrom, todayLocal,
   validDocument,
 } from "@/lib/budget";
 
@@ -93,7 +93,7 @@ export default function HomePage() {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [document, today, workspaceId]);
   const todaysTotal = todaysExpenses.reduce((sum, item) => sum + Math.abs(item.amountOre), 0);
   const selectedDayResult = document ? dailyResultOre(document, workspaceId, expenseDay) : 0;
-  const monthResult = document ? rangeResultOre(document, workspaceId, today.slice(0, 7) + "-01", today) : 0;
+  const remainingMonth = document ? remainingMonthBudgetOre(document, workspaceId, today) : 0;
   const isTodayExpense = expenseDay === today;
   const activeRecurring = useMemo(() => (document?.recurring ?? [])
     .filter(r => r.workspaceId === workspaceId && r.endsOn === null), [document, workspaceId]);
@@ -368,11 +368,11 @@ export default function HomePage() {
             <p>{formatDay(expenseDay)} · Dagsbudget minus registrerade utgifter. Startmånadens saldo gäller endast första månaden.</p>
           </section>
           <section className="day-result-card" aria-labelledby="month-result-heading">
-            <div className="mini-caption" id="month-result-heading">MÅNADENS RESULTAT</div>
-            <div className={"day-result-amount" + (monthResult < 0 ? " is-negative" : "")} aria-live="polite">
-              {monthResult > 0 ? "+" : ""}{money(monthResult)}
+            <div className="mini-caption" id="month-result-heading">KVAR ATT SPENDERA DENNA MÅNAD</div>
+            <div className={"day-result-amount" + (remainingMonth < 0 ? " is-negative" : "")} aria-live="polite">
+              {money(remainingMonth)}
             </div>
-            <p>Hittills denna månad, till och med idag. Kommande dagar räknas inte med.</p>
+            <p>Hela månadens dagsbudget minus utgifterna du registrerat hittills. Även kommande dagars budget ingår. Detta är inte ditt banksaldo.</p>
           </section>
           <section className="panel quick-expense-panel" aria-labelledby="new-expense-heading">
             <div className="mini-caption">SNABBT OCH ENKELT</div>
