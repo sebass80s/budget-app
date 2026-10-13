@@ -218,11 +218,11 @@ export default function HomePage() {
   async function activateMonthlyTurns(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!document || workspace?.turnsStart) return;
-    if (!window.confirm("Starta månadsvisa TURNS från idag? Tidigare datum behåller sina befintliga resultat. Ditt angivna belopp gäller bara dagarna kvar denna månad.")) return;
+    if (!window.confirm("Vill du starta din dagsbudget idag? Vi delar beloppet du anger på dagarna som är kvar av månaden. Från nästa månad räknas dagsbudgeten ut från dina inkomster minus fasta kostnader. Dina tidigare resultat ändras inte.")) return;
     try {
       const changed=startMonthlyTurnsForExisting(document,todayLocal(),existingStart);
       if (await cloud.saveBudget(doc => startMonthlyTurnsForExisting(doc, changed.workspaces[0].turnsStart!.day,existingStart))) {
-        setNotice("Startbudget sparad. Din nya månadsmodell är igång.");
+        setNotice("Din dagsbudget är igång. Beloppet gäller resten av den här månaden.");
       }
     } catch(error) {
       setNotice(error instanceof Error ? error.message : "Beloppet kunde inte sparas.");
@@ -458,13 +458,13 @@ export default function HomePage() {
           </div>
           <p className="settings-explanation">Ändringar av inkomster och fasta kostnader börjar gälla nästa månad och skriver inte om avslutade månader. Dagsbudgeten nollställs vid månadsskiftet, men resultaten finns kvar i historiken.</p>
           {!workspace.turnsStart && <section className="panel form-panel">
-            <div className="mini-caption">ENGÅNGSSTART</div>
-            <h2>Börja med månadsvisa TURNS</h2>
-            <p>Hur mycket har du kvar att spendera resten av den här månaden, efter obetalda fasta räkningar? Beloppet fördelas på återstående dagar. Nästa månad används inkomster och fasta kostnader som vanligt. Äldre datum ändras inte.</p>
+            <div className="mini-caption">DIN DAGSBUDGET</div>
+            <h2>Kom igång med din dagsbudget</h2>
+            <p>Ange hur mycket pengar du har kvar att spendera den här månaden, efter räkningar som ännu inte är betalda. Vi delar beloppet på dagarna som återstår, så att du ser din budget för varje dag. Från nästa månad räknar appen automatiskt ut dagsbudgeten från dina inkomster minus fasta kostnader. Dina tidigare resultat ändras inte.</p>
             <form className="form" onSubmit={activateMonthlyTurns}>
-              <label>Pengar kvar just nu (kr)<input required inputMode="decimal" value={existingStart}
+              <label>Kvar att spendera denna månad (kr)<input required inputMode="decimal" value={existingStart}
                 onChange={e => setExistingStart(e.target.value)} placeholder="Till exempel 8 000" /></label>
-              <button disabled={cloud.status === "saving"} className="button button-primary" type="submit">Starta månadsvisa TURNS</button>
+              <button disabled={cloud.status === "saving"} className="button button-primary" type="submit">Starta min dagsbudget</button>
             </form>
           </section>}
           <details className="panel settings-more">
