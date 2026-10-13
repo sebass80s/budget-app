@@ -8,9 +8,9 @@ const basePath = process.env.GITHUB_PAGES === "true" ? "/budget-app" : "";
 export const viewport: Viewport = { themeColor: "#11282c", width: "device-width", initialScale: 1 };
 
 export const metadata: Metadata = {
-  title: "Budget App | Ett drag i taget",
+  title: "Agile Economy | Ett drag i taget",
   description: "En enklare privatekonomi: dagsnetto, köp och en tydlig framtidsbild.",
-  applicationName: "Budget App",
+  applicationName: "Agile Economy",
   manifest: basePath + "/manifest.webmanifest",
   icons: {
     icon: [
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: basePath + "/icons/apple-touch-icon-180.png", sizes: "180x180", type: "image/png" }],
   },
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "Budget" },
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "Agile Economy" },
 };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (

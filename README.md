@@ -1,4 +1,4 @@
-# Budget App
+# Agile Economy
 
 En personlig budget inspirerad av [Civilization-budgetering](https://archive.alexrecker.com/civ-budget.html): **ett dagligt grundnetto, en händelse i taget**.
 

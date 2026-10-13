@@ -86,7 +86,7 @@ export function Onboarding({ document, saving, message, onSaveEntry, onFinish, o
   return <main className="setup-screen">
     <section className="setup-card" aria-labelledby="setup-heading">
       <header className="setup-top">
-        <div className="setup-brand"><span className="brand-mark">◈</span><strong>budget<span>.</span></strong></div>
+        <div className="setup-brand"><span className="brand-mark">◈</span><strong>Agile<span> Economy</span></strong></div>
         <span className="setup-step">Steg {currentStep} av 5</span>
       </header>
       <div className="setup-progress" role="progressbar" aria-label="Introduktionens framsteg"
