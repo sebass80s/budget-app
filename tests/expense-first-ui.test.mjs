@@ -193,7 +193,8 @@ test("installed PWA checks for new versions on reopen and reloads when new worke
   assert.match(sw, /addEventListener\("visibilitychange", onReturn\)/);
   assert.match(sw, /addEventListener\("focus", onFocus\)/);
   assert.match(sw, /addEventListener\("controllerchange", onControllerChange\)/);
-  assert.match(sw, /hadController\) window\.location\.reload\(\)/);
+  assert.doesNotMatch(sw, /const hadController\s*=/);
+  assert.match(sw, /reloading\s*=\s*true;\s*window\.location\.reload\(\)/);
   assert.match(sw, /removeEventListener\("controllerchange", onControllerChange\)/);
   assert.match(sw, /if \(cancelled \|\| updating \|\| !registration \|\| !navigator\.onLine\) return/);
 });
