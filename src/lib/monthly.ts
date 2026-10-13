@@ -52,12 +52,14 @@ export function getMonthLedger(doc: BudgetDocument, workspaceId: string, month: 
     txByDay.set(item.bookedOn, existing);
   }
 
-  let runningBalance = workspace?.turnsStart ? 0 : workspace ? virtualBalanceOre(doc, workspaceId, addDays(start, -1)) : 0;
+  let runningBalance = workspace ? virtualBalanceOre(doc, workspaceId, addDays(start, -1)) : 0;
+  if (workspace?.turnsStart && start > workspace.turnsStart.day) runningBalance = 0;
   const days: MonthDay[] = [];
   for (let day = start; day <= end; day = addDays(day, 1)) {
     const active = !!workspace && day >= workspace.anchorOn;
+    if (workspace?.turnsStart && day === workspace.turnsStart.day) runningBalance = 0;
     const fixed = active ? recurring
-      .filter(item => activeOn(item, workspace?.turnsStart ? start : day) && (!workspace?.turnsStart || day.slice(0, 7) !== workspace.turnsStart.day.slice(0, 7)))
+      .filter(item => activeOn(item, workspace?.turnsStart && day >= workspace.turnsStart.day ? start : day) && (!workspace?.turnsStart || day < workspace.turnsStart.day || day.slice(0, 7) !== workspace.turnsStart.day.slice(0, 7)))
       .map(item => ({ item, dailyOre: dailyAccrualOre(item) })) : [];
     const recurringIncomeOre = fixed.reduce((sum, r) => sum + Math.max(0, r.dailyOre), 0);
     const recurringExpensesOre = fixed.reduce((sum, r) => sum + Math.min(0, r.dailyOre), 0);

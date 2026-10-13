@@ -86,3 +86,15 @@ test("monthly TURNS never carry surplus from previous month", () => {
   assert.equal(nextMonth("2026-12-31"),"2027-01-01");
   assert.equal(monthStart("2026-10-19"),"2026-10-01");
 });
+
+test("opt-in on existing account preserves older dates but resets balance from chosen day",()=>{
+  const d=createEmptyBudget("2026-09-01");
+  d.recurring=[{id:"rent",workspaceId:"personal",memberId:"owner",label:"Rent",amountOre:-100000,cadence:"monthly",startsOn:"2026-09-01",endsOn:null}];
+  const oldSep=dailyNetOre(d,"personal","2026-09-15");
+  const oldOct=dailyNetOre(d,"personal","2026-10-12");
+  d.workspaces[0].turnsStart={day:"2026-10-13",availableOre:500000};
+  assert.equal(dailyNetOre(d,"personal","2026-09-15"),oldSep);
+  assert.equal(dailyNetOre(d,"personal","2026-10-12"),oldOct);
+  assert.equal(virtualBalanceOre(d,"personal","2026-10-12"),rangeResultOre(d,"personal","2026-09-01","2026-10-12"));
+  assert.equal(virtualBalanceOre(d,"personal","2026-10-31"),500000);
+});

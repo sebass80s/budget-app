@@ -59,3 +59,17 @@ export function setInitialTurnsBalance(doc: BudgetDocument, day: string, raw: st
     i === 0 ? { ...w, anchorOn: day, turnsStart: { day, availableOre } } : w,
   ) };
 }
+
+/** Existing account: explicit opt-in, with all earlier dates still using the old ledger. */
+export function startMonthlyTurnsForExisting(doc: BudgetDocument, day: string, raw: string): BudgetDocument {
+  if (needsOnboarding(doc)) throw new Error("Slutför introduktionen först.");
+  const ws=doc.workspaces[0];
+  if (!ws || ws.turnsStart) throw new Error("Startbudgeten kan endast anges en gång.");
+  const cleaned=raw.trim().replace(/\\s/g,"").replace(",",".");
+  if (!/^(?:0|[0-9]+)(?:\\.[0-9]{1,2})?$/.test(cleaned)) throw new Error("Ange ett giltigt belopp.");
+  const amount=Math.round(Number(cleaned)*100);
+  if (!Number.isSafeInteger(amount)) throw new Error("Beloppet är för stort.");
+  utcDay(day);
+  if (day < ws.anchorOn) throw new Error("Startdatumet kan inte vara före kontots start.");
+  return {...doc,workspaces:doc.workspaces.map((w,i)=>i===0?{...w,turnsStart:{day,availableOre:amount}}:w)};
+}

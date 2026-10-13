@@ -5,7 +5,7 @@ import { CloudPanel } from "@/components/CloudPanel";
 import { ExpenseEditor } from "@/components/ExpenseEditor";
 import { Onboarding } from "@/components/Onboarding";
 import {
-  addSetupEntry, finishOnboarding, needsOnboarding, setInitialTurnsBalance, type SetupKind,
+  addSetupEntry, finishOnboarding, needsOnboarding, setInitialTurnsBalance, startMonthlyTurnsForExisting, type SetupKind,
 } from "@/lib/onboarding";
 import { type ExpenseChange, updateExpense } from "@/lib/expense-edits";
 import { MonthlyTable } from "@/components/MonthlyTable";
@@ -53,6 +53,7 @@ export default function HomePage() {
   const [fixedAmount, setFixedAmount] = useState("");
   const [workspaceName, setWorkspaceName] = useState("Min ekonomi");
   const [opening, setOpening] = useState("0");
+  const [existingStart, setExistingStart] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
   const amountInput = useRef<HTMLInputElement>(null);
 
@@ -213,6 +214,19 @@ export default function HomePage() {
       .then(saved => { if (saved) setNotice("Utgiften har tagits bort."); });
   }
 
+  async function activateMonthlyTurns(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!document || workspace?.turnsStart) return;
+    if (!window.confirm("Starta månadsvisa TURNS från idag? Tidigare datum behåller sina befintliga resultat. Ditt angivna belopp gäller bara dagarna kvar denna månad.")) return;
+    try {
+      const changed=startMonthlyTurnsForExisting(document,todayLocal(),existingStart);
+      if (await cloud.saveBudget(doc => startMonthlyTurnsForExisting(doc, changed.workspaces[0].turnsStart!.day,existingStart))) {
+        setNotice("Startbudget sparad. Din nya månadsmodell är igång.");
+      }
+    } catch(error) {
+      setNotice(error instanceof Error ? error.message : "Beloppet kunde inte sparas.");
+    }
+  }
   async function saveWorkspace(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const normalized = opening.trim().replace(/\s/g, "").replace(",", ".");
@@ -435,6 +449,16 @@ export default function HomePage() {
             </section>
           </div>
           <p className="settings-explanation">Ändringar av inkomster och fasta kostnader börjar gälla nästa månad och skriver inte om avslutade månader. Dagsbudgeten nollställs vid månadsskiftet, men resultaten finns kvar i historiken.</p>
+          {!workspace.turnsStart && <section className="panel form-panel">
+            <div className="mini-caption">ENGÅNGSSTART</div>
+            <h2>Börja med månadsvisa TURNS</h2>
+            <p>Hur mycket har du kvar att spendera resten av den här månaden, efter obetalda fasta räkningar? Beloppet fördelas på återstående dagar. Nästa månad används inkomster och fasta kostnader som vanligt. Äldre datum ändras inte.</p>
+            <form className="form" onSubmit={activateMonthlyTurns}>
+              <label>Pengar kvar just nu (kr)<input required inputMode="decimal" value={existingStart}
+                onChange={e => setExistingStart(e.target.value)} placeholder="Till exempel 8 000" /></label>
+              <button disabled={cloud.status === "saving"} className="button button-primary" type="submit">Starta månadsvisa TURNS</button>
+            </form>
+          </section>}
           <details className="panel settings-more">
             <summary>Fler inställningar</summary>
             <div className="settings-more-content">

@@ -112,7 +112,9 @@ export function monthlyTurnsNetOre(doc: BudgetDocument, workspaceId: string, day
 export function dailyNetOre(doc: BudgetDocument, workspaceId: string, day: string): number {
   const start = doc.workspaces.find(w => w.id === workspaceId)?.turnsStart;
   if (start) {
-    if (day < start.day) return 0;
+    if (day < start.day) return doc.recurring
+      .filter(r => r.workspaceId === workspaceId && activeOn(r, day))
+      .reduce((sum, r) => sum + dailyAccrualOre(r), 0);
     if (day.slice(0,7) === start.day.slice(0,7)) {
       const remaining = daysBetween(start.day, monthEnd(day)) + 1;
       const index = daysBetween(start.day, day);
@@ -146,11 +148,10 @@ export function virtualBalanceOre(doc: BudgetDocument, workspaceId: string, day:
   const w = doc.workspaces.find((item) => item.id === workspaceId);
   if (!w) return 0;
   if (w.turnsStart) {
-    if (day < w.turnsStart.day) return 0;
+    if (day < w.turnsStart.day) return w.openingBalanceOre + rangeResultOre(doc, workspaceId, w.anchorOn, day);
     // Reset the monthly result. Previous months never increase next month's TURNS.
     const first = monthStart(day);
-    return (first === monthStart(w.turnsStart.day) ? 0 : 0) +
-      rangeResultOre(doc, workspaceId, first, day);
+    return rangeResultOre(doc, workspaceId, day.slice(0,7) === w.turnsStart.day.slice(0,7) ? w.turnsStart.day : first, day);
   }
   return w.openingBalanceOre + rangeResultOre(doc, workspaceId, w.anchorOn, day);
 }
@@ -200,7 +201,7 @@ export function validDocument(value: unknown): value is BudgetDocument {
     !Array.isArray(d.recurring) || !Array.isArray(d.transactions) || typeof d.demo !== "boolean") return false;
   try {
     return d.workspaces.length > 0 &&
-      d.workspaces.every((w) => !!w.id && !!w.name && w.currency === "SEK" && validOre(w.openingBalanceOre) && !!utcDay(w.anchorOn) && (w.turnsStart === undefined || (validOre(w.turnsStart.availableOre) && w.turnsStart.availableOre >= 0 && !!utcDay(w.turnsStart.day) && w.turnsStart.day === w.anchorOn))) &&
+      d.workspaces.every((w) => !!w.id && !!w.name && w.currency === "SEK" && validOre(w.openingBalanceOre) && !!utcDay(w.anchorOn) && (w.turnsStart === undefined || (validOre(w.turnsStart.availableOre) && w.turnsStart.availableOre >= 0 && !!utcDay(w.turnsStart.day) && w.turnsStart.day >= w.anchorOn))) &&
       d.members.every((m) => !!m.id && !!m.workspaceId && !!m.displayName) &&
       d.recurring.every((r) => !!r.id && !!r.workspaceId && !!r.label && validOre(r.amountOre) &&
         !!yearlyMultiplier[r.cadence] && !!utcDay(r.startsOn) && (r.endsOn === null || !!utcDay(r.endsOn))) &&

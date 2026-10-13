@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createEmptyBudget, validDocument } from "../src/lib/budget.ts";
 import {
-  needsOnboarding, resumeOnboarding, addSetupEntry, finishOnboarding, setInitialTurnsBalance,
+  needsOnboarding, resumeOnboarding, addSetupEntry, finishOnboarding,
 } from "../src/lib/onboarding.ts";
 
 const makeNew = () => ({
@@ -33,8 +33,7 @@ test("setup saves regular monthly entries with correct signs and without touchin
   assert.equal(cost.recurring.length,2);
   assert.equal(validDocument(cost),true);
   assert.equal(resumeOnboarding(income),"costs");
-  assert.equal(resumeOnboarding(cost),"start");
-  assert.equal(resumeOnboarding(setInitialTurnsBalance(cost,"2026-10-12","8000")),"ready");
+  assert.equal(resumeOnboarding(cost),"ready");
 });
 test("setup entry validates data and handles a repeated transaction id safely", () => {
   const original=makeNew();
@@ -47,7 +46,7 @@ test("setup entry validates data and handles a repeated transaction id safely", 
 });
 test("finish and skip store completion in Firebase document; original data survives", () => {
   const pending=makeNew();
-  const completed=finishOnboarding(setInitialTurnsBalance(pending,"2026-10-12","0"));
+  const completed=finishOnboarding(pending);
   assert.equal(completed.onboarding.completed,true);
   assert.equal(needsOnboarding(completed),false);
   assert.equal(pending.onboarding.completed,false);
