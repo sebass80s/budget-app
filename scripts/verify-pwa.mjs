@@ -39,6 +39,7 @@ const precached = JSON.parse(assetLine.slice("const ASSETS = ".length).replace(/
 assert.ok(!precached.includes(base + "firebase-config.json"), "Cloud config must never be pre-cached");
 assert.ok(sw.includes('fetch(request, {cache: "no-store"})'), "Cloud config must always be loaded from network");
 const listeners = new Map();
+let navigationFetchOptions;
 const env = {
   self: {
     location: { origin: "https://example.org" },
@@ -47,7 +48,7 @@ const env = {
     addEventListener: (name, fn) => listeners.set(name, fn),
   },
   caches: { match: async key => String(key).endsWith("/index.html") ? { offlineShell: true } : undefined },
-  fetch: async () => { throw new Error("offline"); },
+  fetch: async (_request, options) => { navigationFetchOptions = options; throw new Error("offline"); },
   URL, Response, Promise,
 };
 vm.runInNewContext(sw, env);
@@ -57,4 +58,16 @@ listeners.get("fetch")({
   respondWith: value => { response = value; },
 });
 assert.equal((await response).offlineShell, true, "SW offline navigation fallback failed");
+assert.equal(navigationFetchOptions.cache, "no-store", "Navigation must bypass stale HTTP cache");
+// Online navigations must use the live response, not the precached HTML.
+env.fetch = async (_request, options) => {
+  navigationFetchOptions = options;
+  return { freshDocument: true };
+};
+listeners.get("fetch")({
+  request: { method: "GET", mode: "navigate", url: "https://example.org" + base },
+  respondWith: value => { response = value; },
+});
+assert.equal((await response).freshDocument, true, "Online navigation must load the current release");
+assert.equal(navigationFetchOptions.cache, "no-store");
 console.log("PWA verified: manifest, PNG icons, scoped paths, offline app shell.");
