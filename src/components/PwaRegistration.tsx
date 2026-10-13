@@ -16,10 +16,15 @@ export function PwaRegistration() {
     const scopeUrl = new URL("./", manifestUrl);
     let cancelled = false;
     let updating = false;
-    // Reload only when an *existing* app worker is replaced, not on initial install.
-    const hadController = Boolean(navigator.serviceWorker.controller);
+    // A cold-started iOS PWA can initially report controller === null even
+    // though an older worker is installed. Never gate an update on that snapshot.
+    // Reload once when a worker takes control, including the first install:
+    // that is safer than leaving an installed app running stale client code.
+    let reloading = false;
     const onControllerChange = () => {
-      if (!cancelled && hadController) window.location.reload();
+      if (cancelled || reloading || !navigator.serviceWorker.controller) return;
+      reloading = true;
+      window.location.reload();
     };
     navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
 
@@ -35,8 +40,10 @@ export function PwaRegistration() {
       if (!document.hidden) void checkForUpdates();
     };
     const onFocus = () => { void checkForUpdates(); };
+    const onPageShow = () => { void checkForUpdates(); };
     document.addEventListener("visibilitychange", onReturn);
     window.addEventListener("focus", onFocus);
+    window.addEventListener("pageshow", onPageShow);
 
     navigator.serviceWorker.register(workerUrl.href, {
       scope: scopeUrl.pathname,
@@ -53,6 +60,7 @@ export function PwaRegistration() {
       navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
       document.removeEventListener("visibilitychange", onReturn);
       window.removeEventListener("focus", onFocus);
+      window.removeEventListener("pageshow", onPageShow);
     };
   }, []);
   return null;
