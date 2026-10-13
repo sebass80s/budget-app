@@ -197,3 +197,19 @@ test("installed PWA checks for new versions on reopen and reloads when new worke
   assert.match(sw, /removeEventListener\("controllerchange", onControllerChange\)/);
   assert.match(sw, /if \(cancelled \|\| updating \|\| !registration \|\| !navigator\.onLine\) return/);
 });
+
+
+test("Agile Economy branding and clearer expense editing", () => {
+  const layout = readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
+  const manifest = JSON.parse(readFileSync(new URL("../public/manifest.webmanifest", import.meta.url), "utf8"));
+  const editor = readFileSync(new URL("../src/components/ExpenseEditor.tsx", import.meta.url), "utf8");
+  const monthly = readFileSync(new URL("../src/components/MonthlyTable.tsx", import.meta.url), "utf8");
+  assert.equal(manifest.name, "Agile Economy");
+  assert.equal(manifest.short_name, "Agile Economy");
+  assert.match(layout, /applicationName: "Agile Economy"/);
+  assert.match(layout, /title: "Agile Economy"/);
+  assert.match(page, /Agile<span> Economy<\\/span>/);
+  assert.match(editor, /Namn på utgiften/);
+  assert.match(page, /Ändra namn \\/ belopp/);
+  assert.match(monthly, /Ändra namn \\/ belopp/);
+});

@@ -300,7 +300,7 @@ export default function HomePage() {
     return <main className="auth-screen">
       <div className="auth-layout">
         <div className="auth-intro">
-          <div className="brand"><div className="brand-mark">◈</div><div><strong>budget<span>.</span></strong><small>ETT DRAG I TAGET</small></div></div>
+          <div className="brand"><div className="brand-mark">◈</div><div><strong>Agile<span> Economy</span></strong><small>ETT DRAG I TAGET</small></div></div>
           <h1>En enklare vardagsekonomi.</h1>
           <p>Logga in så har du din budget på alla dina enheter.</p>
         </div>
@@ -320,7 +320,7 @@ export default function HomePage() {
   return <div className="shell">
     <aside className="sidebar">
       <button type="button" className="brand brand-home" aria-label="Till registrera utgift" onClick={() => newExpense()}>
-        <span className="brand-mark">◈</span><span><strong>budget<span>.</span></strong><small>ETT DRAG I TAGET</small></span>
+        <span className="brand-mark">◈</span><span><strong>Agile<span> Economy</span></strong><small>ETT DRAG I TAGET</small></span>
       </button>
       <button type="button" className={"menu-expense-action" + (tab === "new" ? " is-active" : "")} onClick={() => newExpense()}>+ Ny utgift</button>
       <div className="sidebar-caption">ÖVERSIKT</div>
@@ -337,7 +337,7 @@ export default function HomePage() {
     <div className="main-shell">
       <header className="mobile-head">
         <button type="button" className="brand brand-home" aria-label="Registrera en ny utgift" onClick={() => newExpense()}>
-          <span className="brand-mark">◈</span><strong>budget<span>.</span></strong>
+          <span className="brand-mark">◈</span><strong>Agile<span> Economy</span></strong>
         </button>
       </header>
       <nav className="mobile-nav" aria-label="Huvudmeny">
@@ -374,7 +374,7 @@ export default function HomePage() {
                 <input ref={amountInput} id="expense-amount" type="text" required inputMode="decimal"
                   autoComplete="off" placeholder="0,00" value={amount} onChange={e => setAmount(e.target.value)} />
               </label>
-              <label htmlFor="expense-description">Vad köpte du? <span>(valfritt)</span>
+              <label htmlFor="expense-description">Namn på utgiften <span>(valfritt)</span>
                 <input id="expense-description" type="text" maxLength={90}
                   placeholder="Till exempel lunch" value={description} onChange={e => setDescription(e.target.value)} />
               </label>
@@ -403,7 +403,7 @@ export default function HomePage() {
                       aria-controls={editingTodayId === item.id ? "edit-expense-" + item.id : undefined}
                       disabled={cloud.status === "saving"}
                       onClick={() => setEditingTodayId(current => current === item.id ? null : item.id)}>
-                      Ändra
+                      ✎ Ändra namn / belopp
                     </button>
                     <button disabled={cloud.status === "saving"} className="icon-button" type="button"
                       aria-label={"Ta bort " + item.label} title="Ta bort utgift" onClick={() => deleteExpense(item)}>×</button>

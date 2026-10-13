@@ -36,7 +36,7 @@ export function ExpenseEditor({
         <input ref={input} type="text" required inputMode="decimal" value={amount}
           onChange={event => setAmount(event.target.value)} />
       </label>
-      <label>Beskrivning <span>(valfritt)</span>
+      <label>Namn på utgiften <span>(valfritt)</span>
         <input type="text" maxLength={90} value={label} onChange={event => setLabel(event.target.value)} />
       </label>
       <label>Datum

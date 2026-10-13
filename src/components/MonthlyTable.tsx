@@ -116,7 +116,7 @@ export function MonthlyTable({ document, workspaceId, today, onEditTransaction, 
                               <strong>{signed(t.amountOre)}</strong>
                               {t.amountOre < 0 && <button type="button" className="quiet-button expense-edit-trigger"
                                 disabled={saving} aria-expanded={editingId === t.id}
-                                onClick={() => setEditingId(current => current === t.id ? null : t.id)}>Ändra</button>}
+                                onClick={() => setEditingId(current => current === t.id ? null : t.id)}>✎ Ändra namn / belopp</button>}
                             </div>
                           </div>
                           {editingId === t.id && <ExpenseEditor transaction={t} saving={saving}
