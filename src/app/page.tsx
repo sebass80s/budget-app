@@ -16,13 +16,12 @@ import {
   validDocument,
 } from "@/lib/budget";
 
-type Tab = "new" | "monthly" | "today" | "settings";
+type Tab = "new" | "monthly" | "settings";
 type FixedKind = "income" | "expense";
 
 const nav: { id: Tab; label: string; icon: string }[] = [
   { id: "new", label: "Hem", icon: "⌂" },
   { id: "monthly", label: "Månadsvy", icon: "▤" },
-  { id: "today", label: "Dagens utgifter", icon: "◉" },
   { id: "settings", label: "Inställningar", icon: "⚙" },
 ];
 const currency = new Intl.NumberFormat("sv-SE", { style: "currency", currency: "SEK", maximumFractionDigits: 2 });
@@ -40,7 +39,7 @@ export default function HomePage() {
   const document = cloud.budget;
   const workspace = document?.workspaces[0];
   const workspaceId = workspace?.id ?? "personal";
-  const [tab, setTab] = useState<Tab>("today");
+  const [tab, setTab] = useState<Tab>("new");
   const [today, setToday] = useState("2026-10-12");
   const [expenseDay, setExpenseDay] = useState("2026-10-12");
   const [amount, setAmount] = useState("");
@@ -372,19 +371,8 @@ export default function HomePage() {
             </form>
             <p className="expense-save-hint">Utgiften visas när den har sparats i Firebase.</p>
           </section>
-          <button type="button" className="today-preview" onClick={() => show("today")}>
-            <span><strong>Utgifter idag</strong><small>{todaysExpenses.length} registrerade</small></span>
-            <strong>{money(todaysTotal)} <span>›</span></strong>
-          </button>
-        </div>}
-
-        {tab === "today" && <div className="daily-expenses">
-          <section className="panel daily-summary">
-            <div><span className="mini-caption">{formatDay(today).toUpperCase()}</span><h2>Totalt idag</h2></div>
-            <strong>{money(todaysTotal)}</strong>
-          </section>
           <section className="panel list-panel">
-            <div className="panel-heading"><h2>Registrerade utgifter</h2><span className="subtle-tag">{todaysExpenses.length} st</span></div>
+            <div className="panel-heading"><h2>Dagens utgifter</h2><span className="subtle-tag">{todaysExpenses.length} st</span></div>
             {todaysExpenses.length === 0 ? <div className="empty-state">Du har inte registrerat några utgifter idag.</div> :
               todaysExpenses.map(item => <div className="expense-item" key={item.id}>
                 <div className="list-row">
