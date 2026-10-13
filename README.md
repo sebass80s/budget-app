@@ -49,6 +49,10 @@ Efter inloggning visas fyra korta steg: **Välkommen → Månadsinkomst → Fast
 
 När guiden slutförs eller hoppas över markeras den färdig i Firebase. Den visas inte igen efter omladdning eller på andra enheter. Guiden kan öppnas manuellt under **Inställningar → Fler inställningar → Visa introduktionen**, utan att befintlig budget raderas eller skapar en ny. En avbruten onboarding kan återupptas efter omladdning med redan sparade poster intakta.
 
+## Automatiska PWA-uppdateringar
+
+Den installerade appen kontrollerar om en ny service worker finns vid start och när iPhone-PWAn blir synlig/får fokus igen. Den begär färsk worker-kod utan HTTP-cache och laddar om sidan när en ny version tagit kontroll. Vid första installationen görs ingen onödig omladdning. Firestore-budgetdata lagras inte av service workern och sparas bara via Firebase.
+
 ## Mobilvy
 
 På telefon ryms alla tre menyval på en rad eller radbryts inom sina respektive fält. **Dagens utgifter** och **+ Ny utgift** ska aldrig orsaka horisontell sidscroll, inte heller när belopp eller utgiftsbeskrivningar är långa. Redigeringsfält och åtgärdsknappar anpassas till smala skärmar. **Månadsvy** visar fullbredda dagkort på mobil utan horisontell scroll. Alla belopp och redigeringsmöjligheter är kvar. På dator visas den vanliga tabellen.

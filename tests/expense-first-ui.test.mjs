@@ -184,3 +184,16 @@ test("today expenses list follows the add expense form on Home without a separat
   assert.match(page, /todaysExpenses\.map\(item =>/);
   assert.match(page, /<ExpenseEditor transaction=\{item\}/);
 });
+
+
+test("installed PWA checks for new versions on reopen and reloads when new worker takes over", () => {
+  const sw = readFileSync(new URL("../src/components/PwaRegistration.tsx", import.meta.url), "utf8");
+  assert.match(sw, /updateViaCache: "none"/);
+  assert.match(sw, /await registration\.update\(\)/);
+  assert.match(sw, /addEventListener\("visibilitychange", onReturn\)/);
+  assert.match(sw, /addEventListener\("focus", onFocus\)/);
+  assert.match(sw, /addEventListener\("controllerchange", onControllerChange\)/);
+  assert.match(sw, /hadController\) window\.location\.reload\(\)/);
+  assert.match(sw, /removeEventListener\("controllerchange", onControllerChange\)/);
+  assert.match(sw, /if \(cancelled \|\| updating \|\| !registration \|\| !navigator\.onLine\) return/);
+});
