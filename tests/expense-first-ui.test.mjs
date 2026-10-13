@@ -149,3 +149,13 @@ test("monthly view shows only ledger and month picker, without top forecast card
   assert.match(month, /className="month-table"/);
   assert.match(page, /tab !== "monthly" && <button type="button" className="button button-secondary"/);
 });
+
+test("create-account button opens its own registration screen with confirmed password", () => {
+  const auth = readFileSync(new URL("../src/components/CloudPanel.tsx", import.meta.url), "utf8");
+  assert.match(auth, /useState<"login" \| "register">\("login"\)/);
+  assert.match(auth, /onClick=\{\(\) => changeScreen\("register"\)\}/);
+  assert.match(auth, /Bekräfta lösenord/);
+  assert.match(auth, /password !== confirmPassword/);
+  assert.match(auth, /onSubmit=\{event => \{ event\.preventDefault\(\); void submit\(true\); \}\}/);
+  assert.match(auth, /onClick=\{\(\) => changeScreen\("login"\)\}/);
+});
