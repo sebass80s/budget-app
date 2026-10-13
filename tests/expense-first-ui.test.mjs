@@ -220,6 +220,6 @@ test("Home displays month-to-date result directly below daily result before expe
   const monthly = page.indexOf('id="month-result-heading"', home);
   const form = page.indexOf('className="panel quick-expense-panel"', home);
   assert.ok(home >= 0 && daily > home && monthly > daily && form > monthly);
-  assert.match(page, /rangeResultOre\(document, workspaceId, today\\.slice\\(0, 7\\) \\+ "-01", today\\)/);
+  assert.ok(page.includes('rangeResultOre(document, workspaceId, today.slice(0, 7) + "-01", today)'));
   assert.match(page, /Hittills denna månad/);
 });
