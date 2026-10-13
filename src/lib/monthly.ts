@@ -2,7 +2,7 @@ import {
   type BudgetDocument,
   type Recurring,
   type Transaction,
-  activeOn, addDays, dailyAccrualOre, virtualBalanceOre,
+  activeOn, addDays, dailyAccrualOre, dailyNetOre, virtualBalanceOre,
 } from "./budget.ts";
 
 /** Calendar-month ledger. Values are integer öre, and balances are virtual, not bank balances. */
@@ -52,18 +52,18 @@ export function getMonthLedger(doc: BudgetDocument, workspaceId: string, month: 
     txByDay.set(item.bookedOn, existing);
   }
 
-  let runningBalance = workspace ? virtualBalanceOre(doc, workspaceId, addDays(start, -1)) : 0;
+  let runningBalance = workspace?.turnsStart ? 0 : workspace ? virtualBalanceOre(doc, workspaceId, addDays(start, -1)) : 0;
   const days: MonthDay[] = [];
   for (let day = start; day <= end; day = addDays(day, 1)) {
     const active = !!workspace && day >= workspace.anchorOn;
     const fixed = active ? recurring
-      .filter(item => activeOn(item, day))
+      .filter(item => activeOn(item, workspace?.turnsStart ? start : day) && (!workspace?.turnsStart || day.slice(0, 7) !== workspace.turnsStart.day.slice(0, 7)))
       .map(item => ({ item, dailyOre: dailyAccrualOre(item) })) : [];
     const recurringIncomeOre = fixed.reduce((sum, r) => sum + Math.max(0, r.dailyOre), 0);
     const recurringExpensesOre = fixed.reduce((sum, r) => sum + Math.min(0, r.dailyOre), 0);
     const entries = active ? (txByDay.get(day) ?? []) : [];
     const variableNetOre = entries.reduce((sum, t) => sum + t.amountOre, 0);
-    const dailyResultOre = recurringIncomeOre + recurringExpensesOre + variableNetOre;
+    const dailyResultOre = (active ? dailyNetOre(doc, workspaceId, day) : 0) + variableNetOre;
     if (active) runningBalance += dailyResultOre;
     days.push({
       date: day, active, recurringIncomeOre, recurringExpensesOre,

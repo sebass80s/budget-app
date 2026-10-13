@@ -5,14 +5,14 @@ import { CloudPanel } from "@/components/CloudPanel";
 import { ExpenseEditor } from "@/components/ExpenseEditor";
 import { Onboarding } from "@/components/Onboarding";
 import {
-  addSetupEntry, finishOnboarding, needsOnboarding, type SetupKind,
+  addSetupEntry, finishOnboarding, needsOnboarding, setInitialTurnsBalance, type SetupKind,
 } from "@/lib/onboarding";
 import { type ExpenseChange, updateExpense } from "@/lib/expense-edits";
 import { MonthlyTable } from "@/components/MonthlyTable";
 import { useCloudSync } from "@/hooks/useCloudSync";
 import {
   type BudgetDocument, type Cadence, type Recurring, type Transaction,
-  addDays, createEmptyBudget, dailyResultOre, kronaToOre, replaceRecurringFrom, todayLocal,
+  addDays, createEmptyBudget, dailyResultOre, kronaToOre, nextMonth, replaceRecurringFrom, todayLocal,
   validDocument,
 } from "@/lib/budget";
 
@@ -135,6 +135,10 @@ export default function HomePage() {
     return cloud.saveBudget(doc => addSetupEntry(doc, { kind, label, amount, day, id }));
   }
 
+  async function saveStart(amount: string): Promise<boolean> {
+    const day = todayLocal();
+    return cloud.saveBudget(doc => setInitialTurnsBalance(doc, day, amount));
+  }
   async function completeSetup(): Promise<boolean> {
     // Only new accounts have an unfinished Firebase onboarding marker.
     // Manually revisiting the guide never modifies existing account metadata.
@@ -165,7 +169,7 @@ export default function HomePage() {
       label,
       amountOre: kind === "income" ? ore : -ore,
       cadence: "monthly",
-      startsOn: today,
+      startsOn: workspace?.turnsStart ? nextMonth(today) : today,
       endsOn: null,
     };
     if (await cloud.saveBudget(d => ({ ...d, recurring: [...d.recurring, item] }))) {
@@ -180,18 +184,19 @@ export default function HomePage() {
     if (input === null) return;
     const ore = kronaToOre(input);
     if (!ore) { setNotice("Ogiltigt belopp."); return; }
-    const from = item.startsOn > today ? item.startsOn : today;
+    const from = workspace?.turnsStart ? nextMonth(today) : item.startsOn > today ? item.startsOn : today;
     void cloud.saveBudget(d => replaceRecurringFrom(d, item.id, from, Math.sign(item.amountOre) * ore))
       .then(saved => { if (saved) setNotice("Beloppet är uppdaterat i Firebase."); });
   }
 
   function endFixed(item: Recurring) {
     if (!window.confirm("Avsluta " + item.label + "? Tidigare budgethistorik behålls.")) return;
+    const endFrom = workspace?.turnsStart ? nextMonth(today) : today;
     void cloud.saveBudget(d => ({
       ...d,
-      recurring: item.startsOn >= today
+      recurring: item.startsOn >= endFrom
         ? d.recurring.filter(r => r.id !== item.id)
-        : d.recurring.map(r => r.id === item.id ? { ...r, endsOn: addDays(today, -1) } : r),
+        : d.recurring.map(r => r.id === item.id ? { ...r, endsOn: addDays(endFrom, -1) } : r),
     })).then(saved => { if (saved) setNotice("Posten har avslutats i Firebase."); });
   }
 
@@ -217,7 +222,7 @@ export default function HomePage() {
     const ore = Math.round(Number(normalized) * 100);
     if (!Number.isSafeInteger(ore)) { setNotice("Beloppet är för stort."); return; }
     if (await cloud.saveBudget(d => ({ ...d, workspaces: d.workspaces.map(w =>
-      w.id === workspaceId ? { ...w, name: workspaceName.trim(), openingBalanceOre: ore } : w,
+      w.id === workspaceId ? { ...w, name: workspaceName.trim(), openingBalanceOre: w.turnsStart ? w.openingBalanceOre : ore } : w,
     ) }))) setNotice("Budgetinställningarna är sparade i Firebase.");
   }
 
@@ -294,7 +299,7 @@ export default function HomePage() {
     .includes(cloud.message) ? "" : cloud.message;
   if (needsOnboarding(document) || showSetupGuide) {
     return <Onboarding document={document} saving={cloud.status === "saving"} message={cloud.message}
-      onSaveEntry={saveSetupEntry} onFinish={completeSetup}
+      onSaveEntry={saveSetupEntry} onFinish={completeSetup} onSaveStart={saveStart}
       onClose={needsOnboarding(document) ? undefined : () => setShowSetupGuide(false)} />;
   }
 
@@ -345,7 +350,7 @@ export default function HomePage() {
             <div className={"day-result-amount" + (selectedDayResult < 0 ? " is-negative" : "")} aria-live="polite">
               {selectedDayResult > 0 ? "+" : ""}{money(selectedDayResult)}
             </div>
-            <p>{formatDay(expenseDay)} · Inklusive fasta inkomster, kostnader och registrerade händelser</p>
+            <p>{formatDay(expenseDay)} · Dagsbudget minus registrerade utgifter. Startmånadens saldo gäller endast första månaden.</p>
           </section>
           <section className="panel quick-expense-panel" aria-labelledby="new-expense-heading">
             <div className="mini-caption">SNABBT OCH ENKELT</div>
@@ -429,7 +434,7 @@ export default function HomePage() {
               <FixedList kind="expense" />
             </section>
           </div>
-          <p className="settings-explanation">Inkomster och fasta kostnader räknas automatiskt in i månadsvyn. Tidigare sparade poster med andra intervall behåller sina intervall.</p>
+          <p className="settings-explanation">Ändringar av inkomster och fasta kostnader börjar gälla nästa månad och skriver inte om avslutade månader. Dagsbudgeten nollställs vid månadsskiftet, men resultaten finns kvar i historiken.</p>
           <details className="panel settings-more">
             <summary>Fler inställningar</summary>
             <div className="settings-more-content">
@@ -441,10 +446,10 @@ export default function HomePage() {
                 </button>
               </section>
               <form className="form" onSubmit={saveWorkspace}>
-                <h2>Budgetens startsaldo</h2>
+                <h2>Budgetens inställningar</h2>
                 <label>Namn på ekonomin <input required maxLength={70} value={workspaceName} onChange={e => setWorkspaceName(e.target.value)} /></label>
-                <label>Virtuellt startsaldo (kr) <input required inputMode="decimal" value={opening} onChange={e => setOpening(e.target.value)} /></label>
-                <p className="form-hint">Startdatum: {formatDay(workspace.anchorOn)}. Detta är ett beräknat budgetsaldo, inte ditt banksaldo.</p>
+                {!workspace.turnsStart && <label>Virtuellt startsaldo (kr) <input required inputMode="decimal" value={opening} onChange={e => setOpening(e.target.value)} /></label>}
+                <p className="form-hint">Startdatum: {formatDay(workspace.anchorOn)}. {workspace.turnsStart ? "Första månadens startsaldo är låst och påverkar inte kommande månader." : "Detta är ett beräknat budgetsaldo, inte ditt banksaldo."}</p>
                 <button disabled={cloud.status === "saving"} className="button button-secondary" type="submit">Spara budgetinställningar</button>
               </form>
               <section className="settings-support">
