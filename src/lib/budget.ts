@@ -144,6 +144,35 @@ export function rangeResultOre(doc: BudgetDocument, workspaceId: string, start: 
   }
   return sum;
 }
+/**
+ * Spendable money left for the current calendar month, NOT the month-to-date
+ * result. Include budget allocated to future days, but only subtract entries
+ * booked up to the selected day.
+ *
+ * On the first monthly-budget month, turnsStart.availableOre already represents
+ * money left at activation; prior expenses must not be subtracted again.
+ * Unlike the historical balance, this is not carried into the next month.
+ */
+export function remainingMonthBudgetOre(doc: BudgetDocument, workspaceId: string, day: string): number {
+  const workspace = doc.workspaces.find(w => w.id === workspaceId);
+  if (!workspace || day < workspace.anchorOn) return 0;
+
+  const start = workspace.turnsStart;
+  const first = monthStart(day);
+  const effectiveStart = start && first === monthStart(start.day) && day >= start.day
+    ? start.day
+    : first > workspace.anchorOn ? first : workspace.anchorOn;
+
+  let fullMonthBudgetOre = 0;
+  for (let d = effectiveStart; d <= monthEnd(day); d = addDays(d, 1)) {
+    fullMonthBudgetOre += dailyNetOre(doc, workspaceId, d);
+  }
+
+  const spendingToDateOre = doc.transactions
+    .filter(t => t.workspaceId === workspaceId && t.bookedOn >= effectiveStart && t.bookedOn <= day)
+    .reduce((sum, t) => sum + t.amountOre, 0);
+  return fullMonthBudgetOre + spendingToDateOre;
+}
 export function virtualBalanceOre(doc: BudgetDocument, workspaceId: string, day: string): number {
   const w = doc.workspaces.find((item) => item.id === workspaceId);
   if (!w) return 0;
