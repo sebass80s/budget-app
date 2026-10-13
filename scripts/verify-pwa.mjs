@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import sharp from "sharp";
 import vm from "node:vm";
 const out = path.resolve("out");
 const manifest = JSON.parse(await readFile(path.join(out, "manifest.webmanifest"), "utf8"));
@@ -21,6 +22,13 @@ assert.ok(manifest.icons.some(icon => icon.purpose === "maskable"));
 const html = await readFile(path.join(out, "index.html"), "utf8");
 assert.ok(html.includes(base + "manifest.webmanifest"), "Manifest reference must contain base path");
 assert.ok(html.includes(base + "icons/apple-touch-icon-180.png"), "iOS icon missing");
+// The deployed icon must be derived from the actual selected original, not the old diamond generator.
+const artwork = await readFile(path.resolve("public/assets/budget-icon.png"));
+const expectedIcon = await sharp(artwork).rotate().resize(192, 192, {
+  fit: "cover", position: "centre",
+}).png().toBuffer();
+const deployedIcon = await readFile(path.join(out, "icons/icon-192.png"));
+assert.deepEqual(deployedIcon, expectedIcon, "Deployed PWA icon must match selected original");
 const sw = await readFile(path.join(out, "sw.js"), "utf8");
 assert.ok(sw.includes(base + "index.html"), "SW missing offline app shell");
 assert.ok(sw.includes(base + "_next/static/"), "SW missing Next.js assets");
