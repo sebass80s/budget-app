@@ -55,13 +55,12 @@ På telefon ryms alla tre menyval på en rad eller radbryts inom sina respektive
 
 ## Enkelt användarflöde
 
-**Startsidan:** Dagens utgifter öppnas automatiskt efter inloggning. En tydlig **+ Ny utgift**-knapp öppnar ett enkelt formulär med belopp, valfri beskrivning och datum förvalt till idag. Utgiften syns först när Firebase bekräftat sparningen.
+**Startsidan:** Hem öppnas automatiskt efter inloggning. På Hem ligger Dagens utgifter direkt under Lägg till utgift. En tydlig **+ Ny utgift**-knapp öppnar ett enkelt formulär med belopp, valfri beskrivning och datum förvalt till idag. Utgiften syns först när Firebase bekräftat sparningen.
 
-**Menyn har fyra val:**
+**Menyn har tre val:**
 
-- **Hem:** Samma snabba registrering av utgifter som när man klickar på logotypen.
+- **Hem:** Samma snabba registrering som logotypen. Direkt under formuläret syns dagens utgifter, med möjlighet att ändra eller ta bort poster.
 - **Månadsvy:** Visar bara månadsväljaren och dagtabellen, utan prognosrutor eller separat knapp för ny utgift ovanför. Nedåtpilen sitter direkt intill datumet. Öppna en dag för att se eller **ändra en tidigare utgift** utan att lämna månadsvyn.
-- **Dagens utgifter:** Dagens lista och totalsumma. Tryck **Ändra** på en post för att rätta belopp, beskrivning eller datum direkt i listan, eller ta bort en felregistrering.
 - **Inställningar:** Lägg till och hantera **inkomster** och **fasta kostnader** (nya poster anges per månad). Tidigare sparade intervall behålls. Fler inställningar innehåller startsaldo, JSON-säkerhetskopia, konto och avancerade åtgärder.
 
 En tydlig **+ Ny utgift**-knapp och den klickbara logotypen tar alltid tillbaka användaren till den snabba registreringen. Datum är förvalt till idag och kan ändras under **Ändra datum**. Ovanför formuläret visas dagens resultat, eller resultatet för valt datum om användaren registrerar en äldre utgift. Resultatet beräknas från fasta inkomster och kostnader samt registrerade händelser och uppdateras efter bekräftad Firebase-sparning. Små knappar har större tryckytor på mobil, och bara relevant feedback visas vid sparning. Dagens utgifter uppdateras när en PWA öppnas efter midnatt. Budgetdata lagras endast i Firebase. När en utgift redigeras uppdateras den befintliga posten i en Firestore-transaktion, utan att en dubblett skapas. Om en annan enhet har ändrat just den utgiften under tiden stoppar appen en överskrivning.

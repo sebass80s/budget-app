@@ -4,9 +4,9 @@ import { readFileSync } from "node:fs";
 import { createEmptyBudget, dailyNetOre, dailyResultOre, kronaToOre } from "../src/lib/budget.ts";
 
 const page = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
-test("expense-first layout exposes home plus the three existing destinations", () => {
+test("expense-first layout exposes three destinations with today expenses on Home", () => {
   const nav = page.match(/const nav:[\s\S]*?= \[([\s\S]*?)\];/)?.[1] ?? "";
-  assert.deepEqual([...nav.matchAll(/id: "([^"]+)"/g)].map(x => x[1]), ["new", "monthly", "today", "settings"]);
+  assert.deepEqual([...nav.matchAll(/id: "([^"]+)"/g)].map(x => x[1]), ["new", "monthly", "settings"]);
   assert.match(page, /Lägg till utgift/);
   assert.match(page, /Dagens utgifter/);
 });
@@ -34,7 +34,7 @@ test("income and fixed cost contribute to daily budget while a purchase reduces 
 test("today's expenses open by default; monthly expansion chevron stays beside date", () => {
   const month = readFileSync(new URL("../src/components/MonthlyTable.tsx", import.meta.url), "utf8");
   const styles = readFileSync(new URL("../src/app/month.css", import.meta.url), "utf8");
-  assert.match(page, /useState<Tab>\("today"\)/);
+  assert.match(page, /useState<Tab>\("new"\)/);
   const labelIndex = month.indexOf('<span className="month-day-label">');
   const arrowIndex = month.indexOf('<span className="day-chevron"');
   assert.ok(arrowIndex >= 0 && labelIndex > arrowIndex, "arrow should precede date text inside the same clickable button");
@@ -50,7 +50,7 @@ test("new expense view displays live daily result above the expense form", () =>
   assert.match(page, /dailyResultOre\(document, workspaceId, expenseDay\)/);
   assert.match(page, /selectedDayResult < 0 \? " is-negative" : ""/);
   assert.match(page, /selectedDayResult > 0 \? "\+" : ""/);
-  assert.match(page, /useState<Tab>\("today"\)/, "Today's expenses remains the default view");
+  assert.match(page, /useState<Tab>\("new"\)/, "Today's expenses remains the default view");
 });
 
 
@@ -165,10 +165,22 @@ test("global Home opens the same quick expense screen as the logo", () => {
   assert.equal((page.match(/item\.id === "new" \? newExpense\(\) : show\(item\.id\)/g) || []).length, 2);
   assert.ok((page.match(/onClick=\{\(\) => newExpense\(\)\}/g) || []).length >= 2);
   const css = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
-  assert.match(css, /grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
+  assert.match(css, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
 });
 
 test("mobile header has no redundant + Utgift button", () => {
   assert.doesNotMatch(page, /className="mobile-expense-action"/);
   assert.match(page, /className="brand brand-home" aria-label="Registrera en ny utgift"/);
+});
+
+test("today expenses list follows the add expense form on Home without a separate tab", () => {
+  const home = page.indexOf('{tab === "new" && <div className="simple-home">');
+  const form = page.indexOf('className="panel quick-expense-panel"', home);
+  const today = page.indexOf('<h2>Dagens utgifter</h2>', home);
+  const month = page.indexOf('{tab === "monthly"', home);
+  assert.ok(home >= 0 && form > home && today > form && month > today);
+  assert.doesNotMatch(page, /tab === "today"/);
+  assert.doesNotMatch(page, /id: "today", label: "Dagens utgifter"/);
+  assert.match(page, /todaysExpenses\.map\(item =>/);
+  assert.match(page, /<ExpenseEditor transaction=\{item\}/);
 });
