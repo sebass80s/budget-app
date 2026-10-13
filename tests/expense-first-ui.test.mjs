@@ -167,3 +167,8 @@ test("global Home opens the same quick expense screen as the logo", () => {
   const css = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
   assert.match(css, /grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
 });
+
+test("mobile header has no redundant + Utgift button", () => {
+  assert.doesNotMatch(page, /className="mobile-expense-action"/);
+  assert.match(page, /className="brand brand-home" aria-label="Registrera en ny utgift"/);
+});

@@ -321,7 +321,6 @@ export default function HomePage() {
         <button type="button" className="brand brand-home" aria-label="Registrera en ny utgift" onClick={() => newExpense()}>
           <span className="brand-mark">◈</span><strong>budget<span>.</span></strong>
         </button>
-        <button type="button" className="mobile-expense-action" onClick={() => newExpense()}>+ Utgift</button>
       </header>
       <nav className="mobile-nav" aria-label="Huvudmeny">
         {nav.map(item => <button type="button" key={item.id} onClick={() => item.id === "new" ? newExpense() : show(item.id)}
