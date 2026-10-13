@@ -82,3 +82,7 @@ Budgetdata finns i den inloggade användarens Firestore-dokument med säkerhetsr
 Arkitektur och framtida flerpersonsstöd: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 MIT-licens.
+
+## Månadsvisa TURNS och start första månaden
+
+Nya konton anger efter inkomster och fasta kostnader ett startbelopp för återstoden av den pågående månaden. Det fördelas över kvarvarande dagar (TURNS). Registrerade återkommande belopp börjar gälla vid nästa månadsskifte. Efter den första månaden räknas varje månads inkomster minus fasta kostnader om till dess dagsbudget, utan att tidigare månaders överskott följer med. Ändringar av fasta belopp träder i kraft nästa månad, medan historiska poster bevaras. Äldre konton behåller sin tidigare modell tills användaren själv väljer **Börja med månadsvisa TURNS** under Inställningar. Tidigare datum räknas då fortfarande med sin ursprungliga modell.

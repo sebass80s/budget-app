@@ -29,6 +29,20 @@ export function MonthlyTable({ document, workspaceId, today, onEditTransaction, 
   const [editingId, setEditingId] = useState<string | null>(null);
   useEffect(() => { setMonth(today.slice(0, 7)); }, [today]);
   const ledger = useMemo(() => getMonthLedger(document, workspaceId, month), [document, workspaceId, month]);
+  const history = useMemo(() => {
+    const workspace = document.workspaces.find(w => w.id === workspaceId);
+    if (!workspace) return [];
+    const result: { month: string; resultOre: number }[] = [];
+    const thisMonth = today.slice(0, 7);
+    let cursor = workspace.anchorOn.slice(0, 7);
+    for (let count = 0; count < 240 && cursor < thisMonth; count++) {
+      const entry = getMonthLedger(document, workspaceId, cursor);
+      result.push({ month: cursor, resultOre: entry.total.dailyResultOre });
+      cursor = shiftMonth(cursor, 1);
+    }
+    return result;
+  }, [document, workspaceId, today]);
+  const historicTotalOre = history.reduce((sum, entry) => sum + entry.resultOre, 0);
   const monthIsBeforeStart = ledger.total.balanceOre === null;
   const isCurrentMonth = month === today.slice(0, 7);
 
@@ -123,6 +137,19 @@ export function MonthlyTable({ document, workspaceId, today, onEditTransaction, 
           </table>
         </div>
       </div>
+      {history.length > 0 && <details className="panel" style={{ padding: "1rem" }}>
+        <summary>Resultat från tidigare månader ({history.length})</summary>
+        <p>Resultaten är historik. De läggs aldrig till nästa månads dagsbudget.</p>
+        <div className="fixed-list">
+          {history.map(entry => <div className="list-row" key={entry.month}>
+            <span>{formatMonth(entry.month)}</span>
+            <strong className={entry.resultOre >= 0 ? "positive" : "negative"}>{signed(entry.resultOre)}</strong>
+          </div>)}
+          <div className="list-row"><strong>Samlat resultat</strong>
+            <strong className={historicTotalOre >= 0 ? "positive" : "negative"}>{signed(historicTotalOre)}</strong>
+          </div>
+        </div>
+      </details>}
     </section>
   );
 }

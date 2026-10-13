@@ -99,7 +99,7 @@ test("new account onboarding opens only from Firebase marker and existing accoun
   assert.match(page,/if \(needsOnboarding\(document\) \|\| showSetupGuide\)/);
   assert.match(page,/cloud\.saveBudget\(finishOnboarding\)/);
   assert.match(page,/Visa introduktionen/);
-  assert.match(setup,/Hoppa över guiden/);
+  assert.match(setup,/Hur mycket har du kvar just nu/);
   assert.match(setup,/Spara och fortsätt/);
   assert.match(setup,/Spara kostnad/);
   assert.match(setup,/Lägg till min första utgift/);

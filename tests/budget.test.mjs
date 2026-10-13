@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   addDays, daysBetween, kronaToOre, createDemoBudget, createEmptyBudget,
   dailyAccrualOre, dailyNetOre, dailyResultOre, rangeResultOre,
-  virtualBalanceOre, mondayOnOrBefore, validDocument, replaceRecurringFrom
+  virtualBalanceOre, mondayOnOrBefore, validDocument, replaceRecurringFrom, monthStart, nextMonth
 } from "../src/lib/budget.ts";
 
 test("dates are timezone-independent, including leap days", () => {
@@ -55,4 +55,46 @@ test("demo and empty documents are valid", () => {
   assert.equal(validDocument(createDemoBudget("2026-10-12")),true);
   assert.equal(validDocument(createEmptyBudget("2026-10-12")),true);
   assert.equal(validDocument({schemaVersion:99}),false);
+});
+
+test("first-month TURNS use only money remaining, ignoring recurring amounts", () => {
+  const d = createEmptyBudget("2026-10-13");
+  d.workspaces[0].turnsStart = { day: "2026-10-13", availableOre: 800000 };
+  d.recurring = [
+    {id:"salary", workspaceId:"personal", memberId:"owner",label:"Lön", amountOre:3000000,cadence:"monthly", startsOn:"2026-11-01",endsOn:null},
+    {id:"rent", workspaceId:"personal", memberId:"owner",label:"Hyra", amountOre:-1200000,cadence:"monthly", startsOn:"2026-11-01",endsOn:null},
+  ];
+  let total = 0;
+  for (let day="2026-10-13"; day<="2026-10-31"; day=addDays(day,1)) total+=dailyNetOre(d,"personal",day);
+  assert.equal(total, 800000);
+  assert.equal(dailyNetOre(d,"personal","2026-10-12"), 0);
+  assert.equal(virtualBalanceOre(d,"personal","2026-10-31"), 800000);
+  let november = 0;
+  for (let day="2026-11-01";day<="2026-11-30";day=addDays(day,1)) november+=dailyNetOre(d,"personal",day);
+  assert.equal(november,1800000);
+  assert.equal(virtualBalanceOre(d,"personal","2026-11-30"),1800000);
+  assert.equal(validDocument(d),true);
+});
+
+test("monthly TURNS never carry surplus from previous month", () => {
+  const d=createEmptyBudget("2026-10-13");
+  d.workspaces[0].turnsStart={day:"2026-10-13",availableOre:800000};
+  d.recurring=[{id:"salary",workspaceId:"personal",memberId:"owner",label:"Lön",amountOre:3000000,cadence:"monthly",startsOn:"2026-11-01",endsOn:null}];
+  d.transactions=[{id:"groceries", workspaceId:"personal", memberId:"owner",label:"Mat",amountOre:-500000,bookedOn:"2026-10-13",createdAt:"x"}];
+  assert.equal(virtualBalanceOre(d,"personal","2026-10-31"),300000);
+  assert.equal(virtualBalanceOre(d,"personal","2026-11-01"),dailyNetOre(d,"personal","2026-11-01"));
+  assert.equal(nextMonth("2026-12-31"),"2027-01-01");
+  assert.equal(monthStart("2026-10-19"),"2026-10-01");
+});
+
+test("opt-in on existing account preserves older dates but resets balance from chosen day",()=>{
+  const d=createEmptyBudget("2026-09-01");
+  d.recurring=[{id:"rent",workspaceId:"personal",memberId:"owner",label:"Rent",amountOre:-100000,cadence:"monthly",startsOn:"2026-09-01",endsOn:null}];
+  const oldSep=dailyNetOre(d,"personal","2026-09-15");
+  const oldOct=dailyNetOre(d,"personal","2026-10-12");
+  d.workspaces[0].turnsStart={day:"2026-10-13",availableOre:500000};
+  assert.equal(dailyNetOre(d,"personal","2026-09-15"),oldSep);
+  assert.equal(dailyNetOre(d,"personal","2026-10-12"),oldOct);
+  assert.equal(virtualBalanceOre(d,"personal","2026-10-12"),rangeResultOre(d,"personal","2026-09-01","2026-10-12"));
+  assert.equal(virtualBalanceOre(d,"personal","2026-10-31"),500000);
 });

@@ -11,6 +11,8 @@ export type Workspace = {
   createdOn: string;
   anchorOn: string;
   openingBalanceOre: number;
+  /** Opt-in monthly TURNS model. Missing on legacy accounts to preserve past calculations. */
+  turnsStart?: { day: string; availableOre: number };
 };
 export type Recurring = {
   id: string;
@@ -86,7 +88,41 @@ const yearlyMultiplier: Record<Cadence, number> = {
 export function dailyAccrualOre(item: Recurring): number {
   return Math.round((item.amountOre * yearlyMultiplier[item.cadence]) / YEAR_DAYS);
 }
+export function monthStart(day: string): string { return day.slice(0, 7) + "-01"; }
+export function nextMonth(day: string): string {
+  const first = monthStart(day);
+  return new Date(Date.UTC(Number(first.slice(0,4)), Number(first.slice(5,7)), 1)).toISOString().slice(0,10);
+}
+export function monthEnd(day: string): string { return addDays(nextMonth(day), -1); }
+export function monthlyTurnsNetOre(doc: BudgetDocument, workspaceId: string, day: string): number {
+  const start = monthStart(day), end = monthEnd(day);
+  const recurringOre = doc.recurring
+    .filter(r => r.workspaceId === workspaceId && activeOn(r, start))
+    .reduce((sum, r) => sum + Math.round(r.amountOre * (
+      r.cadence === "monthly" ? 1 : r.cadence === "weekly" ? 52 / 12 :
+      r.cadence === "quarterly" ? 1 / 3 : 1 / 12
+    )), 0);
+  const days = daysBetween(start, end) + 1;
+  // Integer öre across TURNS: the last days receive the remainder.
+  const index = daysBetween(start, day);
+  const before = Math.floor(recurringOre * index / days);
+  const after = Math.floor(recurringOre * (index + 1) / days);
+  return after - before;
+}
 export function dailyNetOre(doc: BudgetDocument, workspaceId: string, day: string): number {
+  const start = doc.workspaces.find(w => w.id === workspaceId)?.turnsStart;
+  if (start) {
+    if (day < start.day) return doc.recurring
+      .filter(r => r.workspaceId === workspaceId && activeOn(r, day))
+      .reduce((sum, r) => sum + dailyAccrualOre(r), 0);
+    if (day.slice(0,7) === start.day.slice(0,7)) {
+      const remaining = daysBetween(start.day, monthEnd(day)) + 1;
+      const index = daysBetween(start.day, day);
+      return Math.floor(start.availableOre * (index + 1) / remaining)
+        - Math.floor(start.availableOre * index / remaining);
+    }
+    return monthlyTurnsNetOre(doc, workspaceId, day);
+  }
   return doc.recurring
     .filter((r) => r.workspaceId === workspaceId && activeOn(r, day))
     .reduce((sum, r) => sum + dailyAccrualOre(r), 0);
@@ -111,6 +147,12 @@ export function rangeResultOre(doc: BudgetDocument, workspaceId: string, start: 
 export function virtualBalanceOre(doc: BudgetDocument, workspaceId: string, day: string): number {
   const w = doc.workspaces.find((item) => item.id === workspaceId);
   if (!w) return 0;
+  if (w.turnsStart) {
+    if (day < w.turnsStart.day) return w.openingBalanceOre + rangeResultOre(doc, workspaceId, w.anchorOn, day);
+    // Reset the monthly result. Previous months never increase next month's TURNS.
+    const first = monthStart(day);
+    return rangeResultOre(doc, workspaceId, day.slice(0,7) === w.turnsStart.day.slice(0,7) ? w.turnsStart.day : first, day);
+  }
   return w.openingBalanceOre + rangeResultOre(doc, workspaceId, w.anchorOn, day);
 }
 export function mondayOnOrBefore(day: string): string {
@@ -159,7 +201,7 @@ export function validDocument(value: unknown): value is BudgetDocument {
     !Array.isArray(d.recurring) || !Array.isArray(d.transactions) || typeof d.demo !== "boolean") return false;
   try {
     return d.workspaces.length > 0 &&
-      d.workspaces.every((w) => !!w.id && !!w.name && w.currency === "SEK" && validOre(w.openingBalanceOre) && !!utcDay(w.anchorOn)) &&
+      d.workspaces.every((w) => !!w.id && !!w.name && w.currency === "SEK" && validOre(w.openingBalanceOre) && !!utcDay(w.anchorOn) && (w.turnsStart === undefined || (validOre(w.turnsStart.availableOre) && w.turnsStart.availableOre >= 0 && !!utcDay(w.turnsStart.day) && w.turnsStart.day >= w.anchorOn))) &&
       d.members.every((m) => !!m.id && !!m.workspaceId && !!m.displayName) &&
       d.recurring.every((r) => !!r.id && !!r.workspaceId && !!r.label && validOre(r.amountOre) &&
         !!yearlyMultiplier[r.cadence] && !!utcDay(r.startsOn) && (r.endsOn === null || !!utcDay(r.endsOn))) &&

@@ -12,19 +12,21 @@ type Props = {
   message: string;
   onSaveEntry: (kind: SetupKind, label: string, amount: string) => Promise<boolean>;
   onFinish: () => Promise<boolean>;
+  onSaveStart: (amount: string) => Promise<boolean>;
   onClose?: () => void;
 };
 
-const steps: SetupStep[] = ["welcome", "income", "costs", "ready"];
+const steps: SetupStep[] = ["welcome", "income", "costs", "start", "ready"];
 const money = (ore: number) =>
   new Intl.NumberFormat("sv-SE", { style: "currency", currency: "SEK", maximumFractionDigits: 0 }).format(Math.abs(ore) / 100);
 
-export function Onboarding({ document, saving, message, onSaveEntry, onFinish, onClose }: Props) {
+export function Onboarding({ document, saving, message, onSaveEntry, onFinish, onSaveStart, onClose }: Props) {
   const [step, setStep] = useState<SetupStep>(() => resumeOnboarding(document));
   const [incomeLabel, setIncomeLabel] = useState("Lön");
   const [incomeAmount, setIncomeAmount] = useState("");
   const [costLabel, setCostLabel] = useState("");
   const [costAmount, setCostAmount] = useState("");
+  const [startAmount, setStartAmount] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const blocked = busy || saving;
@@ -61,6 +63,16 @@ export function Onboarding({ document, saving, message, onSaveEntry, onFinish, o
       }
     } finally { setBusy(false); }
   }
+  async function saveStart(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (blocked) return;
+    setError("");
+    setBusy(true);
+    try {
+      if (await onSaveStart(startAmount)) go("ready");
+      else setError("Startsaldot kunde inte sparas. Kontrollera anslutningen och försök igen.");
+    } finally { setBusy(false); }
+  }
   async function finish() {
     if (blocked) return;
     setError("");
@@ -75,11 +87,11 @@ export function Onboarding({ document, saving, message, onSaveEntry, onFinish, o
     <section className="setup-card" aria-labelledby="setup-heading">
       <header className="setup-top">
         <div className="setup-brand"><span className="brand-mark">◈</span><strong>budget<span>.</span></strong></div>
-        <span className="setup-step">Steg {currentStep} av 4</span>
+        <span className="setup-step">Steg {currentStep} av 5</span>
       </header>
       <div className="setup-progress" role="progressbar" aria-label="Introduktionens framsteg"
-        aria-valuemin={1} aria-valuemax={4} aria-valuenow={currentStep}>
-        <span style={{ width: currentStep * 25 + "%" }} />
+        aria-valuemin={1} aria-valuemax={5} aria-valuenow={currentStep}>
+        <span style={{ width: currentStep * 20 + "%" }} />
       </div>
 
       {step === "welcome" && <div className="setup-content">
@@ -89,7 +101,8 @@ export function Onboarding({ document, saving, message, onSaveEntry, onFinish, o
         <div className="setup-steps-summary">
           <div><span>1</span> Lägg till månadsinkomst</div>
           <div><span>2</span> Lägg till fasta kostnader</div>
-          <div><span>3</span> Börja registrera utgifter</div>
+          <div><span>3</span> Ange pengar kvar just nu (en gång)</div>
+          <div><span>4</span> Börja registrera utgifter varje TURN</div>
         </div>
         <button className="button button-primary setup-primary" onClick={() => go("income")} type="button">Kom igång →</button>
       </div>}
@@ -125,19 +138,33 @@ export function Onboarding({ document, saving, message, onSaveEntry, onFinish, o
           <label>Belopp per månad (kr)<input inputMode="decimal" required placeholder="7 500" value={costAmount} onChange={e => setCostAmount(e.target.value)} /></label>
           <button disabled={blocked} className="button button-secondary setup-primary" type="submit">{blocked ? "Sparar …" : "+ Spara kostnad"}</button>
         </form>
-        <button type="button" disabled={blocked} className="button button-primary setup-primary" onClick={() => go("ready")}>
+        <button type="button" disabled={blocked} className="button button-primary setup-primary" onClick={() => go("start")}>
           {costs.length ? "Fortsätt →" : "Fortsätt utan fasta kostnader →"}
         </button>
         <button type="button" className="setup-text-button" disabled={blocked} onClick={() => go("income")}>Tillbaka</button>
       </div>}
 
+      {step === "start" && <div className="setup-content">
+        <div className="mini-caption">EN GÅNG VID STARTEN</div>
+        <h1 id="setup-heading">Hur mycket har du kvar just nu?</h1>
+        <p className="setup-lead">Ange pengarna du kan använda resten av den här månaden. Fasta räkningar du redan betalat ska inte dras igen. Har du obetalda räkningar kvar denna månad, dra av dem innan du anger beloppet.</p>
+        <p>Vi delar beloppet på dagarna som återstår. Nästa månad börjar din vanliga månadsbudget automatiskt, baserad på inkomster och fasta kostnader. Sparat överskott höjer aldrig nästa månads dagsbudget.</p>
+        <form className="setup-form" onSubmit={saveStart}>
+          <label>Kvar att spendera (kr)<input required inputMode="decimal" value={startAmount}
+            onChange={e => setStartAmount(e.target.value)} placeholder="Till exempel 8 000" /></label>
+          <button disabled={blocked} className="button button-primary setup-primary" type="submit">{blocked ? "Sparar …" : "Spara startsaldo →"}</button>
+        </form>
+        <button type="button" className="setup-text-button" disabled={blocked} onClick={() => go("start")}>Tillbaka till startsaldo</button>
+      </div>}
+
       {step === "ready" && <div className="setup-content">
         <div className="setup-emoji" aria-hidden="true">🎉</div>
         <h1 id="setup-heading">Nu är du redo!</h1>
-        <p className="setup-lead">Din budget är igång. Registrera utgifterna när de händer, så uppdateras din ekonomi automatiskt på alla dina enheter.</p>
+        <p className="setup-lead">Varje dag är en TURN. Dagens resultat visar din dagsbudget minus dina utgifter. Första månaden utgår från startsaldot; sedan gäller din vanliga månadsbudget. Resultat från tidigare månader följer med i historiken men höjer inte dagsbudgeten.</p>
         <div className="setup-steps-summary">
           <div><span>✓</span> {income.length} {income.length === 1 ? "inkomst" : "inkomster"} inlagda</div>
           <div><span>✓</span> {costs.length} fasta {costs.length === 1 ? "kostnad" : "kostnader"} inlagda</div>
+          <div><span>✓</span> Startsaldo används bara första månaden</div>
           <div><span>✓</span> Budgeten sparas i Firebase</div>
         </div>
         <button type="button" className="button button-primary setup-primary" disabled={blocked} onClick={finish}>
@@ -154,7 +181,7 @@ export function Onboarding({ document, saving, message, onSaveEntry, onFinish, o
         <span>Allt sparas i Firebase. Du kan ändra uppgifterna senare.</span>
         {onClose
           ? <button type="button" className="setup-link" disabled={blocked} onClick={onClose}>Stäng guiden</button>
-          : <button type="button" className="setup-link" disabled={blocked} onClick={finish}>Hoppa över guiden</button>}
+          : <span>Du kan hoppa över inkomster och kostnader, men behöver ange ett startbelopp (0 kr går bra).</span>}
       </footer>
     </section>
   </main>;
