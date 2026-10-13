@@ -224,3 +224,28 @@ test("Home displays month-to-date result directly below daily result before expe
   assert.ok(page.includes('rangeResultOre(document, workspaceId, today.slice(0, 7) + "-01", today)'));
   assert.match(page, /Hittills denna månad/);
 });
+
+test("new accounts start with plain-language onboarding; existing accounts opt in without TURNS jargon", () => {
+  const setup = readFileSync(new URL("../src/components/Onboarding.tsx", import.meta.url), "utf8");
+  const cloud = readFileSync(new URL("../src/hooks/useCloudSync.ts", import.meta.url), "utf8");
+  const onboarding = readFileSync(new URL("../src/lib/onboarding.ts", import.meta.url), "utf8");
+
+  // The Firestore marker causes the setup screen to appear before the main interface.
+  assert.match(cloud, /onboarding: \{ version: 1, completed: false \}/);
+  assert.match(page, /if \(needsOnboarding\(document\) \|\| showSetupGuide\)/);
+  assert.match(page, /return <Onboarding document=\{document\}/);
+  assert.match(onboarding, /doc\.onboarding\?\.version === 1 && doc\.onboarding\.completed === false/);
+
+  // A legacy user sees an optional one-time switch, not the new-user tutorial.
+  assert.match(page, /!workspace\.turnsStart && <section className="panel form-panel">/);
+  assert.match(page, /Kom igång med din dagsbudget/);
+  assert.match(page, /Starta min dagsbudget/);
+  assert.match(setup, /Följ din dagsbudget och registrera utgifter/);
+  assert.match(setup, /Varje dag har du en dagsbudget/);
+
+  // Product concepts stay in the internal model, never in user-facing TSX text.
+  for (const [name, source] of [["Hem", page], ["Introduktionen", setup]]) {
+    assert.doesNotMatch(source, /\bTURNS?\b/, name + " must not show internal terminology");
+    assert.doesNotMatch(source, /månadsspara/i, name + " must not mislabel budgeting as saving");
+  }
+});
