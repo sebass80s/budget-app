@@ -206,10 +206,10 @@ test("Agile Economy branding and clearer expense editing", () => {
   const monthly = readFileSync(new URL("../src/components/MonthlyTable.tsx", import.meta.url), "utf8");
   assert.equal(manifest.name, "Agile Economy");
   assert.equal(manifest.short_name, "Agile Economy");
-  assert.match(layout, /applicationName: "Agile Economy"/);
-  assert.match(layout, /title: "Agile Economy"/);
-  assert.match(page, /Agile<span> Economy<\\/span>/);
-  assert.match(editor, /Namn på utgiften/);
-  assert.match(page, /Ändra namn \\/ belopp/);
-  assert.match(monthly, /Ändra namn \\/ belopp/);
+  assert.ok(layout.includes('applicationName: "Agile Economy"'));
+  assert.ok(layout.includes('title: "Agile Economy"'));
+  assert.ok(page.includes("Agile<span> Economy</span>"));
+  assert.ok(editor.includes("Namn på utgiften"));
+  assert.ok(page.includes("Ändra namn / belopp"));
+  assert.ok(monthly.includes("Ändra namn / belopp"));
 });
