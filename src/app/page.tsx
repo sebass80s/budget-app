@@ -370,7 +370,7 @@ export default function HomePage() {
           <section className="day-result-card" aria-labelledby="month-result-heading">
             <div className="mini-caption" id="month-result-heading">KVAR ATT SPENDERA DENNA MÅNAD</div>
             <div className={"day-result-amount" + (remainingMonth < 0 ? " is-negative" : "")} aria-live="polite">
-              {remainingMonth > 0 ? "+" : ""}{money(remainingMonth)}
+              {money(remainingMonth)}
             </div>
             <p>Hela månadens dagsbudget minus utgifterna du registrerat hittills. Även kommande dagars budget ingår. Detta är inte ditt banksaldo.</p>
           </section>
