@@ -4,9 +4,9 @@ import { readFileSync } from "node:fs";
 import { createEmptyBudget, dailyNetOre, dailyResultOre, kronaToOre } from "../src/lib/budget.ts";
 
 const page = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
-test("expense-first layout exposes precisely three destinations", () => {
+test("expense-first layout exposes home plus the three existing destinations", () => {
   const nav = page.match(/const nav:[\s\S]*?= \[([\s\S]*?)\];/)?.[1] ?? "";
-  assert.deepEqual([...nav.matchAll(/id: "([^"]+)"/g)].map(x => x[1]), ["monthly", "today", "settings"]);
+  assert.deepEqual([...nav.matchAll(/id: "([^"]+)"/g)].map(x => x[1]), ["new", "monthly", "today", "settings"]);
   assert.match(page, /Lägg till utgift/);
   assert.match(page, /Dagens utgifter/);
 });
@@ -158,4 +158,17 @@ test("create-account button opens its own registration screen with confirmed pas
   assert.match(auth, /password !== confirmPassword/);
   assert.match(auth, /onSubmit=\{event => \{ event\.preventDefault\(\); void submit\(true\); \}\}/);
   assert.match(auth, /onClick=\{\(\) => changeScreen\("login"\)\}/);
+});
+
+test("global Home opens the same quick expense screen as the logo", () => {
+  assert.match(page, /id: "new", label: "Hem"/);
+  assert.equal((page.match(/item\.id === "new" \? newExpense\(\) : show\(item\.id\)/g) || []).length, 2);
+  assert.ok((page.match(/onClick=\{\(\) => newExpense\(\)\}/g) || []).length >= 2);
+  const css = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+  assert.match(css, /grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
+});
+
+test("mobile header has no redundant + Utgift button", () => {
+  assert.doesNotMatch(page, /className="mobile-expense-action"/);
+  assert.match(page, /className="brand brand-home" aria-label="Registrera en ny utgift"/);
 });

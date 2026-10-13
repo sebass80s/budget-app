@@ -57,8 +57,9 @@ På telefon ryms alla tre menyval på en rad eller radbryts inom sina respektive
 
 **Startsidan:** Dagens utgifter öppnas automatiskt efter inloggning. En tydlig **+ Ny utgift**-knapp öppnar ett enkelt formulär med belopp, valfri beskrivning och datum förvalt till idag. Utgiften syns först när Firebase bekräftat sparningen.
 
-**Menyn har exakt tre val:**
+**Menyn har fyra val:**
 
+- **Hem:** Samma snabba registrering av utgifter som när man klickar på logotypen.
 - **Månadsvy:** Visar bara månadsväljaren och dagtabellen, utan prognosrutor eller separat knapp för ny utgift ovanför. Nedåtpilen sitter direkt intill datumet. Öppna en dag för att se eller **ändra en tidigare utgift** utan att lämna månadsvyn.
 - **Dagens utgifter:** Dagens lista och totalsumma. Tryck **Ändra** på en post för att rätta belopp, beskrivning eller datum direkt i listan, eller ta bort en felregistrering.
 - **Inställningar:** Lägg till och hantera **inkomster** och **fasta kostnader** (nya poster anges per månad). Tidigare sparade intervall behålls. Fler inställningar innehåller startsaldo, JSON-säkerhetskopia, konto och avancerade åtgärder.

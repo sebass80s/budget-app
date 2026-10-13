@@ -19,7 +19,8 @@ import {
 type Tab = "new" | "monthly" | "today" | "settings";
 type FixedKind = "income" | "expense";
 
-const nav: { id: Exclude<Tab, "new">; label: string; icon: string }[] = [
+const nav: { id: Tab; label: string; icon: string }[] = [
+  { id: "new", label: "Hem", icon: "⌂" },
   { id: "monthly", label: "Månadsvy", icon: "▤" },
   { id: "today", label: "Dagens utgifter", icon: "◉" },
   { id: "settings", label: "Inställningar", icon: "⚙" },
@@ -306,7 +307,7 @@ export default function HomePage() {
       <button type="button" className={"menu-expense-action" + (tab === "new" ? " is-active" : "")} onClick={() => newExpense()}>+ Ny utgift</button>
       <div className="sidebar-caption">ÖVERSIKT</div>
       <nav className="nav" aria-label="Huvudmeny">
-        {nav.map(item => <button type="button" key={item.id} onClick={() => show(item.id)}
+        {nav.map(item => <button type="button" key={item.id} onClick={() => item.id === "new" ? newExpense() : show(item.id)}
           className={tab === item.id ? "nav-item active" : "nav-item"}>
           <span className="nav-symbol">{item.icon}</span>{item.label}
         </button>)}
@@ -320,10 +321,9 @@ export default function HomePage() {
         <button type="button" className="brand brand-home" aria-label="Registrera en ny utgift" onClick={() => newExpense()}>
           <span className="brand-mark">◈</span><strong>budget<span>.</span></strong>
         </button>
-        <button type="button" className="mobile-expense-action" onClick={() => newExpense()}>+ Utgift</button>
       </header>
       <nav className="mobile-nav" aria-label="Huvudmeny">
-        {nav.map(item => <button type="button" key={item.id} onClick={() => show(item.id)}
+        {nav.map(item => <button type="button" key={item.id} onClick={() => item.id === "new" ? newExpense() : show(item.id)}
           className={tab === item.id ? "mobile-nav-item selected" : "mobile-nav-item"}>{item.label}</button>)}
       </nav>
       <main className="main">
