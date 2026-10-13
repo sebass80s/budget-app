@@ -213,3 +213,13 @@ test("Agile Economy branding and clearer expense editing", () => {
   assert.ok(page.includes("Ändra namn / belopp"));
   assert.ok(monthly.includes("Ändra namn / belopp"));
 });
+
+test("Home displays month-to-date result directly below daily result before expense form", () => {
+  const home = page.indexOf('{tab === "new" && <div className="simple-home">');
+  const daily = page.indexOf('id="day-result-heading"', home);
+  const monthly = page.indexOf('id="month-result-heading"', home);
+  const form = page.indexOf('className="panel quick-expense-panel"', home);
+  assert.ok(home >= 0 && daily > home && monthly > daily && form > monthly);
+  assert.ok(page.includes('rangeResultOre(document, workspaceId, today.slice(0, 7) + "-01", today)'));
+  assert.match(page, /Hittills denna månad/);
+});
