@@ -102,7 +102,7 @@ export function Onboarding({ document, saving, message, onSaveEntry, onFinish, o
           <div><span>1</span> Lägg till månadsinkomst</div>
           <div><span>2</span> Lägg till fasta kostnader</div>
           <div><span>3</span> Ange pengar kvar just nu (en gång)</div>
-          <div><span>4</span> Börja registrera utgifter varje TURN</div>
+          <div><span>4</span> Följ din dagsbudget och registrera utgifter</div>
         </div>
         <button className="button button-primary setup-primary" onClick={() => go("income")} type="button">Kom igång →</button>
       </div>}
@@ -160,7 +160,7 @@ export function Onboarding({ document, saving, message, onSaveEntry, onFinish, o
       {step === "ready" && <div className="setup-content">
         <div className="setup-emoji" aria-hidden="true">🎉</div>
         <h1 id="setup-heading">Nu är du redo!</h1>
-        <p className="setup-lead">Varje dag är en TURN. Dagens resultat visar din dagsbudget minus dina utgifter. Första månaden utgår från startsaldot; sedan gäller din vanliga månadsbudget. Resultat från tidigare månader följer med i historiken men höjer inte dagsbudgeten.</p>
+        <p className="setup-lead">Varje dag har du en dagsbudget. När du lägger in en utgift ser du hur dagens resultat förändras. Den här första månaden delar vi pengarna du har kvar på dagarna som återstår. Från nästa månad bygger dagsbudgeten på dina inkomster minus fasta kostnader. Tidigare månaders resultat sparas i historiken, men läggs inte till nästa månads budget.</p>
         <div className="setup-steps-summary">
           <div><span>✓</span> {income.length} {income.length === 1 ? "inkomst" : "inkomster"} inlagda</div>
           <div><span>✓</span> {costs.length} fasta {costs.length === 1 ? "kostnad" : "kostnader"} inlagda</div>
