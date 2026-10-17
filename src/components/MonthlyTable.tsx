@@ -66,7 +66,7 @@ export function MonthlyTable({ document, workspaceId, today, onEditTransaction, 
           <span><i className="month-dot past" /> Genomförd dag</span>
           <span><i className="month-dot today" /> Idag</span>
           <span><i className="month-dot future" /> Kommande dag</span>
-          <span className="month-mobile-hint">Tryck på en dag för att se eller ändra dina utgifter.</span>
+          <span className="month-mobile-hint">Tryck på en dag för att se eller ändra utgifter och engångsinkomster.</span>
         </div>
         <div className="month-scroll" role="region" aria-label={formatMonth(month) + " – budgettabell"} tabIndex={0}>
           <table className="month-table">
@@ -111,10 +111,10 @@ export function MonthlyTable({ document, workspaceId, today, onEditTransaction, 
                       {row.transactions.map(t =>
                         <div className="month-expense-item" key={t.id}>
                           <div className="month-detail">
-                            <span>{t.label} <small>registrerad händelse</small></span>
+                            <span>{t.label} <small>{t.amountOre > 0 ? "engångsinkomst" : "utgift"}</small></span>
                             <div className="month-detail-actions">
                               <strong>{signed(t.amountOre)}</strong>
-                              {t.amountOre < 0 && <button type="button" className="quiet-button expense-edit-trigger"
+                              {t.amountOre !== 0 && <button type="button" className="quiet-button expense-edit-trigger"
                                 disabled={saving} aria-expanded={editingId === t.id}
                                 onClick={() => setEditingId(current => current === t.id ? null : t.id)}>✎ Ändra namn / belopp</button>}
                             </div>

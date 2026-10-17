@@ -9,34 +9,53 @@ export type ExpenseChange = {
 };
 
 /**
- * Update just one expense in the latest Firestore budget. Preserve its id,
- * creation timestamp and membership. Reject stale edits instead of silently
- * overwriting a concurrent correction made on another device.
+ * Change a single signed transaction against the latest Firestore document.
+ * Preserve identity, sign and creation timestamp, and reject concurrent edits.
+ * Expenses and one-time income use the same conflict-safe editing logic.
  */
-export function updateExpense(
+function updateSignedTransaction(
   document: BudgetDocument, original: Transaction, change: ExpenseChange,
+  kind: "expense" | "income",
 ): BudgetDocument {
   const amount = kronaToOre(change.amount);
   if (!amount) throw new Error("Ange ett giltigt belopp större än noll.");
-  const label = change.label.trim() || "Utgift";
+  const label = change.label.trim() || (kind === "income" ? "Engångsinkomst" : "Utgift");
   if (label.length > 90) throw new Error("Beskrivningen får vara högst 90 tecken.");
   try { utcDay(change.bookedOn); }
   catch { throw new Error("Ange ett giltigt datum."); }
 
   const current = document.transactions.find(item => item.id === original.id);
-  if (!current || current.amountOre >= 0) {
-    throw new Error("Utgiften finns inte längre. Ladda om listan.");
+  const expectedSign = kind === "income" ? 1 : -1;
+  if (!current || Math.sign(current.amountOre) !== expectedSign || Math.sign(original.amountOre) !== expectedSign) {
+    throw new Error((kind === "income" ? "Inkomsten" : "Utgiften") + " finns inte längre. Ladda om listan.");
   }
   if (current.label !== original.label ||
       current.amountOre !== original.amountOre ||
       current.bookedOn !== original.bookedOn) {
-    throw new Error("Utgiften har ändrats på en annan enhet. Kontrollera den senaste versionen.");
+    throw new Error((kind === "income" ? "Inkomsten" : "Utgiften") + " har ändrats på en annan enhet. Kontrollera den senaste versionen.");
+  }
+  const workspace = document.workspaces.find(w => w.id === current.workspaceId);
+  if (kind === "income" && workspace && change.bookedOn < workspace.anchorOn) {
+    throw new Error("Datumet kan inte vara före budgetens start.");
   }
 
   return {
     ...document,
     transactions: document.transactions.map(item => item.id === original.id
-      ? { ...item, amountOre: -amount, label, bookedOn: change.bookedOn }
+      ? { ...item, amountOre: expectedSign * amount, label, bookedOn: change.bookedOn }
       : item),
   };
+}
+
+/** Historical export retained for existing callers and tests. */
+export function updateExpense(
+  document: BudgetDocument, original: Transaction, change: ExpenseChange,
+): BudgetDocument {
+  return updateSignedTransaction(document, original, change, "expense");
+}
+
+export function updateOneTimeIncome(
+  document: BudgetDocument, original: Transaction, change: ExpenseChange,
+): BudgetDocument {
+  return updateSignedTransaction(document, original, change, "income");
 }
