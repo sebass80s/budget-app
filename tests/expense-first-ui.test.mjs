@@ -137,7 +137,7 @@ test("month ledger shows all values as no-scroll day cards on phone", () => {
     assert.ok(mobile.includes('content:"'+label+'"'));
   }
   assert.match(mobile, /\.month-table \.month-details-row>td/);
-  assert.match(markup, /Tryck på en dag för att se eller ändra dina utgifter/);
+  assert.match(markup, /Tryck på en dag för att se eller ändra utgifter och engångsinkomster/);
   assert.doesNotMatch(markup, /Svep tabellen i sidled/);
 });
 
