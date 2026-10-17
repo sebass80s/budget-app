@@ -369,3 +369,16 @@ h2{font-size:18px;letter-spacing:-.5px;line-height:1.3;margin:6px 0 0}
 /* Home contains today's list directly below quick entry; only three mobile tabs. */
 .simple-home .list-panel{min-width:0}
 @media(max-width:760px){.mobile-nav{grid-template-columns:repeat(3,minmax(0,1fr));padding:8px 12px;gap:5px}}
+
+/* Optional one-off income keeps the expense-first Home focused. */
+.one-time-income-panel{padding:0;overflow:visible}
+.one-time-income-panel>summary{list-style:none;cursor:pointer;padding:20px 26px;min-height:54px;display:flex;align-items:center;color:#187a64;font-size:14px;font-weight:800}
+.one-time-income-panel>summary::-webkit-details-marker{display:none}
+.one-time-income-panel>summary:focus-visible{outline:2px solid #187a64;outline-offset:-3px;border-radius:12px}
+.one-time-income-content{padding:0 26px 22px}
+.one-time-income-content>p{font-size:12px;line-height:1.6;color:#60777a;margin:0 0 18px}
+.one-time-income-list{margin-top:24px}
+.one-time-income-list h3{font-size:14px;margin:0 0 4px}
+.one-time-income-list .list-row{flex-wrap:wrap}
+.one-time-income-list .list-row-right{flex-wrap:wrap;white-space:normal}
+@media(max-width:760px){.one-time-income-panel>summary{padding:17px 20px}.one-time-income-content{padding:0 20px 20px}}
