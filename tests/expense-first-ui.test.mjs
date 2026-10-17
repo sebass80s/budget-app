@@ -72,7 +72,7 @@ test("UX: reduce status clutter, enlarge mobile controls, and explain month scro
   assert.match(page, /includes\(cloud\.message\) \? "" : cloud\.message/);
   assert.match(stylesheet, /\.icon-button\{min-width:44px;width:44px;height:44px/);
   assert.match(stylesheet, /\.mobile-nav-item\{min-height:44px\}/);
-  assert.match(monthMarkup, /Tryck på en dag för att se eller ändra dina utgifter/);
+  assert.match(monthMarkup, /Tryck på en dag för att se eller ändra utgifter och engångsinkomster/);
 });
 
 
@@ -81,9 +81,9 @@ test("existing expense correction is reachable from daily expenses and opened mo
   const editor = readFileSync(new URL("../src/components/ExpenseEditor.tsx", import.meta.url), "utf8");
   assert.match(page, /const \[editingTodayId, setEditingTodayId\] = useState/);
   assert.match(page, /onEditTransaction=\{saveExpenseEdit\}/);
-  assert.match(page, /cloud\.saveBudget\(doc => updateExpense\(doc, original, changes\)\)/);
+  assert.match(page, /updateOneTimeIncome\(doc, original, changes\) : updateExpense\(doc, original, changes\)/);
   assert.match(page, /<ExpenseEditor transaction=\{item\}/);
-  assert.match(month, /t\.amountOre < 0 && <button/);
+  assert.match(month, /t\.amountOre !== 0 && <button/);
   assert.match(month, /<ExpenseEditor transaction=\{t\}/);
   assert.match(editor, /const original = useRef\(transaction\)/);
   assert.match(editor, /onSave\(original\.current, \{ amount, label, bookedOn \}\)/);
@@ -223,7 +223,7 @@ test("Home shows remaining spendable money after daily result, not accrued month
   assert.ok(home >= 0 && daily > home && monthly > daily && form > monthly);
   assert.ok(page.includes('remainingMonthBudgetOre(document, workspaceId, today)'));
   assert.match(page, /KVAR ATT SPENDERA DENNA MÅNAD/);
-  assert.match(page, /Även kommande dagars budget ingår/);
+  assert.match(page, /Kommande dagars budget ingår/);
   assert.doesNotMatch(page, /MÅNADENS RESULTAT|Hittills denna månad/);
 });
 
@@ -250,4 +250,22 @@ test("new accounts start with plain-language onboarding; existing accounts opt i
     assert.doesNotMatch(source, /\bTURNS?\b/, name + " must not show internal terminology");
     assert.doesNotMatch(source, /månadsspara/i, name + " must not mislabel budgeting as saving");
   }
+});
+
+test("one-off income is an optional Home action saved separately from expenses", () => {
+  const model = readFileSync(new URL("../src/lib/one-time-income.ts", import.meta.url), "utf8");
+  const editor = readFileSync(new URL("../src/components/ExpenseEditor.tsx", import.meta.url), "utf8");
+  const month = readFileSync(new URL("../src/components/MonthlyTable.tsx", import.meta.url), "utf8");
+  assert.match(page, /<summary>\+ Lägg till extra pengar/);
+  assert.match(page, /onSubmit=\{addExtraMoney\}/);
+  assert.match(page, /cloud\.saveBudget\(doc => addOneTimeIncome\(doc, entry\)\)/);
+  assert.match(page, /Lägg till pengarna/);
+  assert.match(page, /todaysIncomes\.map\(item =>/);
+  assert.match(page, /deleteOneTimeIncome\(item\)/);
+  assert.match(page, /updateOneTimeIncome\(doc, original, changes\)/);
+  assert.match(model, /amountOre: ore/);
+  assert.doesNotMatch(model, /recurring:/);
+  assert.match(editor, /Ändra engångsinkomst/);
+  assert.match(month, /t\.amountOre > 0 \? "engångsinkomst" : "utgift"/);
+  assert.match(month, /t\.amountOre !== 0 && <button/);
 });
