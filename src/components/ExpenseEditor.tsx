@@ -12,8 +12,9 @@ export function ExpenseEditor({
   onCancel: () => void;
   saving: boolean;
 }) {
+  const isIncome = transaction.amountOre > 0;
   const [amount, setAmount] = useState(String(Math.abs(transaction.amountOre) / 100).replace(".", ","));
-  const [label, setLabel] = useState(transaction.label === "Utgift" ? "" : transaction.label);
+  const [label, setLabel] = useState(["Utgift", "Engångsinkomst"].includes(transaction.label) ? "" : transaction.label);
   const [bookedOn, setBookedOn] = useState(transaction.bookedOn);
   // Capture the original snapshot. A remote Firestore edit while this form is open
   // must cause a conflict rather than silently overwrite the other device.
@@ -29,14 +30,14 @@ export function ExpenseEditor({
     if (saved) onCancel();
   }
 
-  return <form className="expense-edit-form" aria-label={"Ändra utgift: " + transaction.label} onSubmit={submit}>
-    <strong className="expense-edit-title">Ändra utgift</strong>
+  return <form className="expense-edit-form" aria-label={(isIncome ? "Ändra engångsinkomst: " : "Ändra utgift: ") + transaction.label} onSubmit={submit}>
+    <strong className="expense-edit-title">{isIncome ? "Ändra engångsinkomst" : "Ändra utgift"}</strong>
     <div className="expense-edit-fields">
       <label>Belopp (kr)
         <input ref={input} type="text" required inputMode="decimal" value={amount}
           onChange={event => setAmount(event.target.value)} />
       </label>
-      <label>Namn på utgiften <span>(valfritt)</span>
+      <label>{isIncome ? "Beskrivning av inkomsten" : "Namn på utgiften"} <span>(valfritt)</span>
         <input type="text" maxLength={90} value={label} onChange={event => setLabel(event.target.value)} />
       </label>
       <label>Datum
