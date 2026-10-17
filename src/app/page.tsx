@@ -7,7 +7,8 @@ import { Onboarding } from "@/components/Onboarding";
 import {
   addSetupEntry, finishOnboarding, needsOnboarding, setInitialTurnsBalance, startMonthlyTurnsForExisting, type SetupKind,
 } from "@/lib/onboarding";
-import { type ExpenseChange, updateExpense } from "@/lib/expense-edits";
+import { type ExpenseChange, updateExpense, updateOneTimeIncome } from "@/lib/expense-edits";
+import { addOneTimeIncome } from "@/lib/one-time-income";
 import { MonthlyTable } from "@/components/MonthlyTable";
 import { useCloudSync } from "@/hooks/useCloudSync";
 import {
@@ -44,6 +45,10 @@ export default function HomePage() {
   const [expenseDay, setExpenseDay] = useState("2026-10-12");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
+  const [incomeOnceAmount, setIncomeOnceAmount] = useState("");
+  const [incomeOnceDescription, setIncomeOnceDescription] = useState("");
+  const [incomeOnceDay, setIncomeOnceDay] = useState("2026-10-12");
+  const [editingIncomeId, setEditingIncomeId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const [editingTodayId, setEditingTodayId] = useState<string | null>(null);
   const [showSetupGuide, setShowSetupGuide] = useState(false);
@@ -61,12 +66,14 @@ export default function HomePage() {
     let lastToday = todayLocal();
     setToday(lastToday);
     setExpenseDay(lastToday);
+    setIncomeOnceDay(lastToday);
     // Installed iPhone PWAs can stay mounted across midnight.
     const refreshDay = () => {
       const current = todayLocal();
       if (current === lastToday) return;
       setToday(current);
       setExpenseDay(previous => previous === lastToday ? current : previous);
+      setIncomeOnceDay(previous => previous === lastToday ? current : previous);
       lastToday = current;
     };
     const onVisibilityChange = () => {
@@ -92,6 +99,9 @@ export default function HomePage() {
     .filter(t => t.workspaceId === workspaceId && t.bookedOn === today && t.amountOre < 0)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [document, today, workspaceId]);
   const todaysTotal = todaysExpenses.reduce((sum, item) => sum + Math.abs(item.amountOre), 0);
+  const todaysIncomes = useMemo(() => (document?.transactions ?? [])
+    .filter(t => t.workspaceId === workspaceId && t.bookedOn === today && t.amountOre > 0)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [document, today, workspaceId]);
   const selectedDayResult = document ? dailyResultOre(document, workspaceId, expenseDay) : 0;
   const remainingMonth = document ? remainingMonthBudgetOre(document, workspaceId, today) : 0;
   const isTodayExpense = expenseDay === today;
@@ -128,6 +138,25 @@ export default function HomePage() {
       setAmount("");
       setDescription("");
       setNotice("Utgiften är sparad i Firebase.");
+    }
+  }
+
+  async function addExtraMoney(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setNotice("");
+    if (!document || !kronaToOre(incomeOnceAmount) || !incomeOnceDay) {
+      setNotice("Ange ett giltigt belopp över noll.");
+      return;
+    }
+    const entry = {
+      id: crypto.randomUUID(), workspaceId, label: incomeOnceDescription,
+      amount: incomeOnceAmount, bookedOn: incomeOnceDay,
+      createdAt: new Date().toISOString(),
+    };
+    if (await cloud.saveBudget(doc => addOneTimeIncome(doc, entry))) {
+      setIncomeOnceAmount("");
+      setIncomeOnceDescription("");
+      setNotice("Engångsinkomsten är sparad i Firebase.");
     }
   }
 
@@ -204,8 +233,9 @@ export default function HomePage() {
 
   async function saveExpenseEdit(original: Transaction, changes: ExpenseChange): Promise<boolean> {
     setNotice("");
-    const saved = await cloud.saveBudget(doc => updateExpense(doc, original, changes));
-    if (saved) setNotice("Utgiften har uppdaterats i Firebase.");
+    const saved = await cloud.saveBudget(doc => original.amountOre > 0
+      ? updateOneTimeIncome(doc, original, changes) : updateExpense(doc, original, changes));
+    if (saved) setNotice(original.amountOre > 0 ? "Engångsinkomsten har uppdaterats i Firebase." : "Utgiften har uppdaterats i Firebase.");
     return saved;
   }
 
@@ -213,6 +243,12 @@ export default function HomePage() {
     if (!window.confirm("Ta bort utgiften " + item.label + "?")) return;
     void cloud.saveBudget(d => ({ ...d, transactions: d.transactions.filter(t => t.id !== item.id) }))
       .then(saved => { if (saved) setNotice("Utgiften har tagits bort."); });
+  }
+
+  function deleteOneTimeIncome(item: Transaction) {
+    if (!window.confirm("Ta bort engångsinkomsten " + item.label + "?")) return;
+    void cloud.saveBudget(d => ({ ...d, transactions: d.transactions.filter(t => t.id !== item.id || t.amountOre <= 0) }))
+      .then(saved => { if (saved) setNotice("Engångsinkomsten har tagits bort."); });
   }
 
   async function activateMonthlyTurns(event: React.FormEvent<HTMLFormElement>) {
@@ -365,14 +401,14 @@ export default function HomePage() {
             <div className={"day-result-amount" + (selectedDayResult < 0 ? " is-negative" : "")} aria-live="polite">
               {selectedDayResult > 0 ? "+" : ""}{money(selectedDayResult)}
             </div>
-            <p>{formatDay(expenseDay)} · Dagsbudget minus registrerade utgifter. Startmånadens saldo gäller endast första månaden.</p>
+            <p>{formatDay(expenseDay)} · Dagsbudget plus extra pengar, minus registrerade utgifter. Startmånadens saldo gäller endast första månaden.</p>
           </section>
           <section className="day-result-card" aria-labelledby="month-result-heading">
             <div className="mini-caption" id="month-result-heading">KVAR ATT SPENDERA DENNA MÅNAD</div>
             <div className={"day-result-amount" + (remainingMonth < 0 ? " is-negative" : "")} aria-live="polite">
               {money(remainingMonth)}
             </div>
-            <p>Hela månadens dagsbudget minus utgifterna du registrerat hittills. Även kommande dagars budget ingår. Detta är inte ditt banksaldo.</p>
+            <p>Hela månadens dagsbudget plus engångsinkomster, minus utgifterna hittills. Kommande dagars budget ingår. Detta är inte ditt banksaldo.</p>
           </section>
           <section className="panel quick-expense-panel" aria-labelledby="new-expense-heading">
             <div className="mini-caption">SNABBT OCH ENKELT</div>
@@ -398,6 +434,56 @@ export default function HomePage() {
             </form>
             <p className="expense-save-hint">Utgiften visas när den har sparats i Firebase.</p>
           </section>
+          <details className="panel one-time-income-panel">
+            <summary>+ Lägg till extra pengar{todaysIncomes.length > 0 ? " (" + todaysIncomes.length + " idag)" : ""}</summary>
+            <div className="one-time-income-content">
+              <p>Har du fått extra pengar, till exempel en lottvinst? Lägg till beloppet här. Det ökar det du kan spendera den här månaden, men räknas inte som återkommande inkomst.</p>
+              <form className="quick-expense-form" onSubmit={addExtraMoney}>
+                <label htmlFor="income-once-amount">Belopp (kr)
+                  <input id="income-once-amount" type="text" required inputMode="decimal"
+                    autoComplete="off" placeholder="Till exempel 100" value={incomeOnceAmount}
+                    onChange={e => setIncomeOnceAmount(e.target.value)} />
+                </label>
+                <label htmlFor="income-once-description">Vad fick du pengarna för? <span>(valfritt)</span>
+                  <input id="income-once-description" type="text" maxLength={90}
+                    placeholder="Till exempel lottvinst" value={incomeOnceDescription}
+                    onChange={e => setIncomeOnceDescription(e.target.value)} />
+                </label>
+                <details className="expense-date-options" open={incomeOnceDay !== today}>
+                  <summary>{incomeOnceDay === today ? "Ändra datum (idag)" : "Datum: " + formatDay(incomeOnceDay)}</summary>
+                  <label htmlFor="income-once-date" className="expense-date-label">Datum för engångsinkomsten
+                    <input id="income-once-date" type="date" required min={workspace.anchorOn}
+                      value={incomeOnceDay} onChange={e => setIncomeOnceDay(e.target.value)} />
+                  </label>
+                </details>
+                <button disabled={cloud.status === "saving"} type="submit" className="button button-primary quick-submit">
+                  {cloud.status === "saving" ? "Sparar …" : "Lägg till pengarna"}
+                </button>
+              </form>
+              {todaysIncomes.length > 0 && <div className="one-time-income-list">
+                <h3>Extra pengar idag</h3>
+                {todaysIncomes.map(item => <div className="expense-item" key={item.id}>
+                  <div className="list-row">
+                    <div><strong>{item.label}</strong><small>{formatDay(item.bookedOn)}</small></div>
+                    <div className="list-row-right">
+                      <strong className="positive">+{money(item.amountOre)}</strong>
+                      <button type="button" className="quiet-button expense-edit-trigger"
+                        disabled={cloud.status === "saving"} aria-expanded={editingIncomeId === item.id}
+                        onClick={() => setEditingIncomeId(current => current === item.id ? null : item.id)}>
+                        ✎ Ändra namn / belopp
+                      </button>
+                      <button type="button" disabled={cloud.status === "saving"} className="icon-button"
+                        aria-label={"Ta bort " + item.label} title="Ta bort engångsinkomst"
+                        onClick={() => deleteOneTimeIncome(item)}>×</button>
+                    </div>
+                  </div>
+                  {editingIncomeId === item.id && <ExpenseEditor transaction={item}
+                    saving={cloud.status === "saving"}
+                    onSave={saveExpenseEdit} onCancel={() => setEditingIncomeId(null)} />}
+                </div>)}
+              </div>}
+            </div>
+          </details>
           <section className="panel list-panel">
             <div className="panel-heading"><h2>Dagens utgifter</h2><span className="subtle-tag">{todaysExpenses.length} st</span></div>
             {todaysExpenses.length === 0 ? <div className="empty-state">Du har inte registrerat några utgifter idag.</div> :
